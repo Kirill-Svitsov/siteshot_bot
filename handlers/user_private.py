@@ -1,3 +1,4 @@
+import time
 from datetime import datetime
 import re
 
@@ -88,42 +89,64 @@ async def process_cmd(message: types.Message, state: FSMContext):
     date = str(datetime.now())
     user_id = int(message.from_user.id)
     url = message.text
-    if not re.match(r'https?://(?:www\.)?example\.com', url):
+    start_time = time.time()
+    url_pattern = re.compile(r'^https?://(?:\w+\.)+\w+/')
+    if not url_pattern.match(url):
         await message.answer("URL не соответствует шаблону. Пожалуйста, введите корректный URL.")
         return
     await state.update_data(url=message.text)
-    await message.answer(
-        f'Получаю скриншот по адресу: {message.text}',
+    process_message = await message.answer(
+        'Получаю скриншот...',
     )
-    await message.answer_animation(PROCESS_STICKER)
+    process_sticker = await message.answer_animation(PROCESS_STICKER)
     await state.set_state(MakeShot.process)
-    screenshot_path = await make_shot(date, user_id, url)
-    if screenshot_path:
+    result = await make_shot(date, user_id, url)
+    if result:
+        screenshot_path, title = result
         await state.update_data(screenshot_path=screenshot_path)
         await state.set_state(MakeShot.screenshot_path)
         # Сразу после установки состояния MakeShot.screenshot_path отправляем скриншот
-        await send_screenshot(message, state)
+        await send_screenshot(message, state, start_time, title, process_message, process_sticker)
     else:
         await message.answer("Ошибка при создании скриншота.")
         await state.clear()  # Отменяем состояние при ошибке
 
 
-# Хэндлер отправки скриншота
 @user_private_router.message(MakeShot.screenshot_path)
-async def send_screenshot(message: types.Message, state: FSMContext):
+async def send_screenshot(
+        message: types.Message,
+        state: FSMContext,
+        start_time: float,
+        title: str,
+        process_message: types.Message,
+        process_animation: types.Message
+):
     """Хэндлер отправки скриншота"""
-    data = await state.get_data()
-    screenshot_path = data.get('screenshot_path')
+    data = await state.get_data()  # Получаем данные из состояния
+    screenshot_path = data.get('screenshot_path')  # Получаем путь к скриншоту из данных состояния
+    url = data.get('url')  # Получаем URL из данных состояния
+    finish_time = round((time.time() - start_time), 1)
+    new_message_text = (
+        f'✔ Скриншот сохранен и отправлен в чат:\n'
+        f'🕸 Страница: <b>{title}</b>\n'
+        f'🔗 URL: {url}\n'  # Используем URL из данных состояния
+        f'⏱ Время обработки: <b>{finish_time} секунд(ы)</b>\n'
+        f'Вот “Подробнее”, которая показывает WHOIS сайта'
+    )
     await message.answer_photo(
         photo=FSInputFile(
             screenshot_path, filename=screenshot_path
-        ), caption=f'Скриншот сохранен и отправлен в чат:\n'
-                   f'Это заняло вот столько времени = \n'
-                   f'Вот “Подробнее”, которая показывает WHOIS сайта',
+        ), caption=new_message_text,
         reply_markup=start_keyboard
     )
+    # Удаляем сообщение о процессе и анимацию
+    await process_message.delete()
+    await process_animation.delete()
+
+    # Отправляем стикер о завершении
     await message.answer_animation(DONE_STICKER)
     await state.clear()  # Завершаем состояние после отправки скриншота
+
 
 
 @user_private_router.message()
