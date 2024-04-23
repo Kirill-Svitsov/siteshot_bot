@@ -10,14 +10,16 @@ from dotenv import load_dotenv, find_dotenv
 from common.bot_cmnds_list import private
 from constants.constants import *
 from handlers.user_private import user_private_router
+from handlers.user_group import user_group_router
 
 load_dotenv(find_dotenv())
 
 bot = Bot(token=os.getenv('TOKEN'), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 # Создаем диспетчер
 dp = Dispatcher()
+# dp.update.middleware(DataBaseSession(session_pool=session_maker))
 # Подключаем роутеры к диспетчеру
-dp.include_routers(user_private_router, )
+dp.include_routers(user_private_router, user_group_router)
 
 
 async def main():

@@ -33,7 +33,8 @@ COMMAND_LIST = (f'Вот список моих комманд:\n'
                 f'/hello - поздороваться\n'
                 f'/bye - попрощаться\n'
                 f'Случайный текст, картинка, все-что угодно тоже даст ответ!')
-URL_ANSWER = 'введи пожалуйста URL в формате: https://www.example.com'
+URL_ANSWER = ('введи пожалуйста URL в формате: https://www.example.com\n'
+              'Или нажми на /cancel, чтобы отменить операцию.')
 # Ответ на сообщение не текстового типа
 NON_TYPE_ANSWER = f'К сожалению на текущий момент я умею работать только с текстом'
 NON_TYPE_STICKER = 'CAACAgIAAxkBAAEE63xmJrtcBhtpevidtv75QlI83TRcUgACmjQAAogW6ErexTv1TVEynzQE'
