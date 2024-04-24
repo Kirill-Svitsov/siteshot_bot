@@ -43,6 +43,8 @@ DONE_STICKER = 'CAACAgIAAxkBAAEE6zFmJq9Wtsgvl9E3JhooQgpyXNHA6QACAQADdJypFpeZtNvQ
 # Неожиданный ответ
 EXCEPTION_ANSWER = 'Что-то пошло не по плану'
 MAX_SIZE_PICTURE = 1900
+SCREENSHOTS_DIR = 'screenshots'
+LOGS_DIR = 'logs'
 VALID_STATUS_CODES = [200, 201, 202, 203, 204, 205, 206, 300, 301, 302, 303, 304, 305, 306, 307, 308]
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',

@@ -26,9 +26,8 @@ async def main():
         await bot.delete_webhook(drop_pending_updates=True)
         await bot.set_my_commands(commands=private, scope=BotCommandScopeAllPrivateChats())
         await dp.start_polling(bot, allowed_updates=ALLOWED_UPDATES)
-        logger.info("Бот успешно запущен и готов к работе.")
     except Exception as e:
-        logger.error(f"Произошла ошибка при запуске бота: {e}")
+        logger.critical(f"Произошла ошибка при запуске бота: {e}")
 
 
 asyncio.run(main())

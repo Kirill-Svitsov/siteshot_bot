@@ -1,6 +1,11 @@
 import logging
 from logging.handlers import RotatingFileHandler
+import os
 
+from constants.constants import LOGS_DIR
+
+if not os.path.exists(LOGS_DIR):
+    os.makedirs(LOGS_DIR)
 logger = logging.getLogger(__name__)
 FORMAT = '%(levelname)s (%(asctime)s): %(message)s (Line: %(lineno)d) [%(filename)s]'
 logger.setLevel(logging.INFO)
@@ -12,4 +17,3 @@ file_handler.setFormatter(logging.Formatter(FORMAT))
 file_handler.setLevel(logging.INFO)
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
-

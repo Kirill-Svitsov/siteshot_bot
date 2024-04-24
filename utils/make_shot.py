@@ -12,18 +12,18 @@ from PIL import Image
 from io import BytesIO
 import whois
 
-from constants.constants import MAX_SIZE_PICTURE, VALID_STATUS_CODES, HEADERS
+from constants.constants import MAX_SIZE_PICTURE, VALID_STATUS_CODES, HEADERS, SCREENSHOTS_DIR
 from utils.loger import logger
 
 
-async def make_shot(date: str, user_id: int, url: str, screenshots_dir: str = 'screenshots'):
+async def make_shot(date: str, user_id: int, url: str):
     """Функция получения и возвращения скриншота и Title сайта.
     Так как selenium работает синхронно, эта функция блокирует поток
     и не позволяет другим функциям обрабатывать запросы.
     """
     # Проверяем, существует ли директория screenshots, если нет, создаем ее
-    if not os.path.exists(screenshots_dir):
-        os.makedirs(screenshots_dir)
+    if not os.path.exists(SCREENSHOTS_DIR):
+        os.makedirs(SCREENSHOTS_DIR)
 
     try:
         response = requests.get(url, headers=HEADERS)
@@ -70,7 +70,7 @@ async def make_shot(date: str, user_id: int, url: str, screenshots_dir: str = 's
     date_formatted = datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f").strftime("%d_%m_%Y")
     # Строим путь к файлу скриншота с помощью os.path.join()
     screenshot_filename = f'user_id_{user_id}_url_{cleaned_url}_date_{date_formatted}.png'
-    screenshot_path = os.path.join(screenshots_dir, screenshot_filename)
+    screenshot_path = os.path.join(SCREENSHOTS_DIR, screenshot_filename)
     # Сохраняем обрезанный скриншот в файл
     with open(screenshot_path, 'wb') as file:
         image.save(file, "PNG")
