@@ -12,7 +12,7 @@ from io import BytesIO
 import whois
 
 from constants.constants import MAX_SIZE_PICTURE, VALID_STATUS_CODES, HEADERS
-from logs.loger import logger
+from utils.loger import logger
 
 
 async def make_shot(date: str, user_id: int, url: str, screenshots_dir: str = 'screenshots'):

@@ -1,6 +1,5 @@
 import time
 from datetime import datetime
-import logging
 import re
 
 from aiogram import types, Router, F
@@ -11,10 +10,10 @@ from aiogram.types import FSInputFile
 
 from constants.constants import *
 from filters.chat_types import ChatTypeFilter
-from handlers.make_shot import make_shot
 from keyboard.inline import git, more
 from keyboard.reply import start_keyboard
-from logs.loger import logger
+from utils.loger import logger
+from utils.make_shot import make_shot
 
 user_private_router = Router()
 # Устанавливаем фильтрацию на роутер для хэндлеров приватных чатов
