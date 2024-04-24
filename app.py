@@ -11,7 +11,7 @@ from common.bot_cmnds_list import private
 from constants.constants import *
 from handlers.user_private import user_private_router
 from handlers.user_group import user_group_router
-from logs.loger import logger
+from utils.loger import logger
 
 load_dotenv(find_dotenv())
 

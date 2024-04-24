@@ -25,6 +25,9 @@ async def make_shot(date: str, user_id: int, url: str, screenshots_dir: str = 's
         os.makedirs(screenshots_dir)
 
     response = requests.get(url, headers=HEADERS)
+    if not response:
+        logger.warning(f'Функция make_shot не смогла получить доступ к странице.')
+        return
     logger.info(f'Функция make_shot начала работу.')
     logger.info(f'Функция make_shot получила ответ: {response.status_code}')
     if response.status_code not in VALID_STATUS_CODES:

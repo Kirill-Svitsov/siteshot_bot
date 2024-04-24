@@ -171,7 +171,7 @@ async def send_screenshot(
         new_message_text += "Вот “Подробнее”, которая показывает WHOIS сайта"
         new_reply_markup = more
     else:
-        logger.warning('WHOIS не отправлен в чат.')
+        logger.warning('WHOIS не будет отправлен в чат.')
         new_message_text += "К сожалению не удалось получить WHOIS сайта"
         new_reply_markup = None
         await state.clear()  # Завершаем состояние после отправки скриншота
