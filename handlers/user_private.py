@@ -89,7 +89,8 @@ async def process_cmd(message: types.Message, state: FSMContext):
         return
     await state.update_data(url=message.text)
     process_message = await message.answer(
-        'Получаю скриншот...',
+        'Получаю скриншот...\n'
+        'К сожалению на это время другие комманды не работают 😪',
     )
     process_sticker = await message.answer_animation(PROCESS_STICKER)
     await state.set_state(MakeShot.process)
