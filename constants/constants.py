@@ -33,8 +33,7 @@ COMMAND_LIST = (f'Вот список моих комманд:\n'
                 f'/hello - поздороваться\n'
                 f'/bye - попрощаться\n'
                 f'Случайный текст, картинка, все-что угодно тоже даст ответ!')
-URL_ANSWER = ('введи пожалуйста URL в формате: https://www.example.com\n'
-              'Или нажми на /cancel, чтобы отменить операцию.')
+URL_ANSWER = 'Введите пожалуйста URL в формате: https://www.example.com.'
 # Ответ на сообщение не текстового типа
 NON_TYPE_ANSWER = f'К сожалению на текущий момент я умею работать только с текстом'
 NON_TYPE_STICKER = 'CAACAgIAAxkBAAEE63xmJrtcBhtpevidtv75QlI83TRcUgACmjQAAogW6ErexTv1TVEynzQE'
@@ -44,3 +43,11 @@ DONE_STICKER = 'CAACAgIAAxkBAAEE6zFmJq9Wtsgvl9E3JhooQgpyXNHA6QACAQADdJypFpeZtNvQ
 # Неожиданный ответ
 EXCEPTION_ANSWER = 'Что-то пошло не по плану'
 MAX_SIZE_PICTURE = 1900
+VALID_STATUS_CODES = [200, 201, 202, 203, 204, 205, 206, 300, 301, 302, 303, 304, 305, 306, 307, 308]
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Referer': 'https://www.google.com/'  # Если требуется, установите заголовок Referer
+}

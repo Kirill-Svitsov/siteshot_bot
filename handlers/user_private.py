@@ -1,6 +1,6 @@
-import asyncio
 import time
 from datetime import datetime
+import logging
 import re
 
 from aiogram import types, Router, F
@@ -11,9 +11,10 @@ from aiogram.types import FSInputFile
 
 from constants.constants import *
 from filters.chat_types import ChatTypeFilter
+from handlers.make_shot import make_shot
 from keyboard.inline import git, more
 from keyboard.reply import start_keyboard
-from handlers.make_shot import make_shot
+from logs.loger import logger
 
 user_private_router = Router()
 # Устанавливаем фильтрацию на роутер для хэндлеров приватных чатов
@@ -28,6 +29,7 @@ async def start_cmd(message: types.Message):
         reply_markup=start_keyboard
     )
     await message.answer_animation(HASBIK_HELLO)
+    logger.info(f'{message.from_user.username} - начал работу с ботом.')
 
 
 @user_private_router.message(F.text.lower() == 'привет')
@@ -36,6 +38,7 @@ async def hello_cmd(message: types.Message):
     """Хэндлер на обработку URL и возвращения скриншота"""
     await message.reply(f'<b>{message.from_user.first_name}</b>' + GREETING_ANSWER)
     await message.answer_animation(HASBIK_HELLO)
+    logger.info(f'{message.from_user.username} - использовал команду hello.')
 
 
 @user_private_router.message(F.text.lower() == 'пока')
@@ -44,6 +47,7 @@ async def bye_cmd(message: types.Message):
     """Хэндлер на обработку URL и возвращения скриншота"""
     await message.reply(BYE_ANSWER + f'<b>{message.from_user.first_name}</b>!')
     await message.answer_animation(BYE_STICKER)
+    logger.info(f'{message.from_user.username} - использовал команду bye.')
 
 
 @user_private_router.message(F.text.lower() == 'помощь')
@@ -54,6 +58,7 @@ async def help_cmd(message: types.Message):
         f'<b>{message.from_user.first_name}</b> ' + COMMAND_LIST,
         reply_markup=git
     )
+    logger.info(f'{message.from_user.username} - использовал команду help.')
 
 
 # Код для состояний машины FSM
@@ -74,6 +79,7 @@ async def shot_cmd(message: types.Message, state: FSMContext):
         reply_markup=None
     )
     await state.set_state(MakeShot.url)
+    logger.info(f'{message.from_user.username}  - использовал команду сделать скриншот.')
 
 
 # Хэндлер получения скриншота
@@ -86,13 +92,20 @@ async def process_cmd(message: types.Message, state: FSMContext):
     start_time = time.time()
     url_pattern = re.compile(r'^https?://(?:\w+\.)+\w+/')
     if not url_pattern.match(url):
-        await message.answer("URL не соответствует шаблону. Пожалуйста, введите корректный URL.")
+        await message.answer(
+            "URL не соответствует шаблону. Пожалуйста, введите корректный URL."
+        )
+        logger.error(
+            f'{message.from_user.username}'
+            f' - использовал неккоретный URL: {message.text}'
+        )
         return
     await state.update_data(url=message.text)
     process_message = await message.answer(
         'Получаю скриншот...\n'
         'К сожалению на это время другие комманды не работают 😪',
     )
+    logger.info('Запущен процесс получения скриншота.')
     process_sticker = await message.answer_animation(PROCESS_STICKER)
     await state.set_state(MakeShot.process)
 
@@ -105,9 +118,12 @@ async def process_cmd(message: types.Message, state: FSMContext):
     #
     # # Запускаем таймер
     # timeout_task = asyncio.create_task(timeout_handler())
+
     result = await make_shot(date, user_id, url)
     if result:
+        logger.info('Скриншот получен. Функция продолжает работу.')
         if len(result) == 3:
+            logger.info('Функция вернула все аргуенты, в том числе и WHOIS.')
             screenshot_path, title, info = result
             await state.update_data(screenshot_path=screenshot_path)
             await state.update_data(info=info)
@@ -115,6 +131,7 @@ async def process_cmd(message: types.Message, state: FSMContext):
             # Сразу после установки состояния MakeShot.screenshot_path отправляем скриншот
             await send_screenshot(message, state, start_time, title, process_message, process_sticker, info)
         else:
+            logger.info('Функция вернула скриншот, без WHOIS.')
             screenshot_path, title = result
             await state.update_data(screenshot_path=screenshot_path)
             await state.set_state(MakeShot.screenshot_path)
@@ -122,7 +139,10 @@ async def process_cmd(message: types.Message, state: FSMContext):
             await send_screenshot(message, state, start_time, title, process_message, process_sticker)
 
     else:
-        await message.answer("Ошибка при создании скриншота.")
+        logger.error('Функция не вернула скриншот.')
+        await message.answer(
+            "Ошибка при создании скриншота, бот не может получить доступ к URL."
+        )
         await state.clear()  # Отменяем состояние при ошибке
 
 
@@ -148,25 +168,29 @@ async def send_screenshot(
         f'⏱ Время обработки: <b>{finish_time} секунд(ы)</b>\n'
     )
     if info:
+        logger.info('WHOIS отправлен в чат.')
         new_message_text += "Вот “Подробнее”, которая показывает WHOIS сайта"
         new_reply_markup = more
     else:
+        logger.warning('WHOIS не отправлен в чат.')
         new_message_text += "К сожалению не удалось получить WHOIS сайта"
         new_reply_markup = None
         await state.clear()  # Завершаем состояние после отправки скриншота
+    # Удаляем сообщение о процессе и
     await message.answer_photo(
         photo=FSInputFile(
             screenshot_path, filename=screenshot_path
         ), caption=new_message_text,
         reply_markup=new_reply_markup
     )
-
-    # Удаляем сообщение о процессе и анимацию
+    logger.info('Скриншот отправлен в чат.')
+    # Это скорее костыль, но изменить сообщение не удалось
+    # Поэтому удаляю
     await process_message.delete()
     await process_animation.delete()
-
     # Отправляем стикер о завершении
     await message.answer_animation(DONE_STICKER)
+    logger.info('Функция отправки скриншота завершила работу.')
 
 
 @user_private_router.callback_query(F.data.in_(['подробнее', 'more']))
@@ -177,11 +201,13 @@ async def more_info_callback(query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     info = data.get('info')
     if info:
+        logger.info('Нажата кнопка "Подробнее" к скриншоту.')
         # Отправляем информацию в чат
         await query.message.answer(f'Информация WHOIS:\n{info}')
     else:
         await query.message.answer('К сожалению информацию WHOIS добыть не удалось')
     await state.clear()
+    logger.info(f'Состояние FSM машины сброшено.')
     # Удаление сообщения с кнопкой "Подробнее"
     await query.message.edit_reply_markup(reply_markup=None)
 
@@ -191,6 +217,7 @@ async def stub(message: types.Message):
     """Ответ - заглушка на неизвестные команды."""
     user = message.from_user.first_name
     if message.text:
+        logger.info(f'{message.from_user.username} - ввел несуществующую команду.')
         text = message.text
         if text.lower() in GREETINGS_WORDS:
             await message.reply(f'<b>{user}</b>' + GREETING_ANSWER)
@@ -204,5 +231,6 @@ async def stub(message: types.Message):
             )
             await message.answer_animation(UNKNOWN_STICKER)
     else:
+        logger.warning(f'{message.from_user.username} - отправил не текстовое сообщение.')
         await message.answer(NON_TYPE_ANSWER)
         await message.answer_animation(NON_TYPE_STICKER)

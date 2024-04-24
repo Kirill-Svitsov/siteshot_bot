@@ -11,7 +11,8 @@ from PIL import Image
 from io import BytesIO
 import whois
 
-from constants.constants import MAX_SIZE_PICTURE
+from constants.constants import MAX_SIZE_PICTURE, VALID_STATUS_CODES, HEADERS
+from logs.loger import logger
 
 
 async def make_shot(date: str, user_id: int, url: str, screenshots_dir: str = 'screenshots'):
@@ -19,10 +20,14 @@ async def make_shot(date: str, user_id: int, url: str, screenshots_dir: str = 's
     Так как selenium работает синхронно, эта функция блокирует поток
     и не позволяет другим функциям обрабатывать запросы.
     """
-    response = requests.get(url)
-    if response.status_code != 200:
-        return None
+    response = requests.get(url, headers=HEADERS)
+    logger.info(f'Функция make_shot начала работу.')
+    logger.info(f'Функция make_shot получила ответ: {response.status_code}')
+    if response.status_code not in VALID_STATUS_CODES:
+        logger.warning(f'Функция make_shot не смогла получить доступ к странице.')
+        return
     # Получаем Title страницы
+    logger.info(f'Функция make_shot получила доступ к странице.')
     soup = BeautifulSoup(response.content, 'html.parser')
     title = soup.find('title').text
     # Создаем объект опций для настройки браузера
@@ -38,7 +43,10 @@ async def make_shot(date: str, user_id: int, url: str, screenshots_dir: str = 's
     total_height = driver.execute_script("return document.body.scrollHeight")
     # Проверка на допустимые значения изображения в Telegram
     if total_height > MAX_SIZE_PICTURE or total_width > MAX_SIZE_PICTURE:
+        logger.info(f'Размеры скриншота превышают допустимые.')
         total_height = total_width = MAX_SIZE_PICTURE
+    else:
+        logger.info(f'Размеры скриншота проходят/')
     # Устанавливаем размеры окна браузера, чтобы оно вместило всю страницу
     driver.set_window_size(total_width, total_height)
     # Снимаем скриншот всей страницы
@@ -56,11 +64,12 @@ async def make_shot(date: str, user_id: int, url: str, screenshots_dir: str = 's
     # Сохраняем обрезанный скриншот в файл
     with open(screenshot_path, 'wb') as file:
         image.save(file, "PNG")
-    print("Скриншот сохранен по пути:", screenshot_path)
+        logger.info(f'Скриншот сохранен по пути {screenshot_path}.')
     try:
         info = whois.whois(url)
         if info:
+            logger.info('Функция make_shot получила WHOIS.')
             return screenshot_path, title, info
     except Exception as e:
-        print("Ошибка при получении информации WHOIS:", e)
+        logger.error(f'Функция make_shot не получила WHOIS. Причина - {e}.')
     return screenshot_path, title
