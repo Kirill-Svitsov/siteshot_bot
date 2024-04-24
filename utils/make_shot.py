@@ -4,6 +4,7 @@ import re
 import requests
 
 from bs4 import BeautifulSoup
+from requests import RequestException
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -24,10 +25,12 @@ async def make_shot(date: str, user_id: int, url: str, screenshots_dir: str = 's
     if not os.path.exists(screenshots_dir):
         os.makedirs(screenshots_dir)
 
-    response = requests.get(url, headers=HEADERS)
-    if not response:
-        logger.warning(f'Функция make_shot не смогла получить доступ к странице.')
-        return
+    try:
+        response = requests.get(url, headers=HEADERS)
+        response.raise_for_status()  # Проверяем, был ли получен успешный ответ (код 2xx)
+    except RequestException as e:
+        logger.error(f'Ошибка при запросе к URL: {e}')
+        return None
     logger.info(f'Функция make_shot начала работу.')
     logger.info(f'Функция make_shot получила ответ: {response.status_code}')
     if response.status_code not in VALID_STATUS_CODES:
