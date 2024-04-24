@@ -1,3 +1,4 @@
+import asyncio
 import time
 from datetime import datetime
 import re
@@ -94,6 +95,16 @@ async def process_cmd(message: types.Message, state: FSMContext):
     )
     process_sticker = await message.answer_animation(PROCESS_STICKER)
     await state.set_state(MakeShot.process)
+
+    # Хотел добавить таймер на долгий ответ, но selenium синхронная
+    # Поэтому она выполниться в любом случае, и таймер не сработает.
+    # async def timeout_handler():
+    #     await asyncio.sleep(45)
+    #     await message.answer("Извините, что-то пошло не так. Процесс занимает слишком много времени.")
+    #     await state.set_state(MakeShot.url)
+    #
+    # # Запускаем таймер
+    # timeout_task = asyncio.create_task(timeout_handler())
     result = await make_shot(date, user_id, url)
     if result:
         if len(result) == 3:
