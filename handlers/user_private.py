@@ -89,7 +89,7 @@ async def process_cmd(message: types.Message, state: FSMContext):
     user_id = int(message.from_user.id)
     url = message.text
     start_time = time.time()
-    url_pattern = re.compile(r'^https?://(?:\w+\.)+\w+/')
+    url_pattern = re.compile(r'^https?://(?:[\w-]+\.?)+[\w]+(?:/\S*)?')
     if not url_pattern.match(url):
         await message.answer(
             "URL не соответствует шаблону. Пожалуйста, введите корректный URL."
