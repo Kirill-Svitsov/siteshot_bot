@@ -20,6 +20,10 @@ async def make_shot(date: str, user_id: int, url: str, screenshots_dir: str = 's
     Так как selenium работает синхронно, эта функция блокирует поток
     и не позволяет другим функциям обрабатывать запросы.
     """
+    # Проверяем, существует ли директория screenshots, если нет, создаем ее
+    if not os.path.exists(screenshots_dir):
+        os.makedirs(screenshots_dir)
+
     response = requests.get(url, headers=HEADERS)
     logger.info(f'Функция make_shot начала работу.')
     logger.info(f'Функция make_shot получила ответ: {response.status_code}')
