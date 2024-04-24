@@ -10,6 +10,7 @@ from aiogram.types import FSInputFile
 
 from constants.constants import *
 from filters.chat_types import ChatTypeFilter
+from keyboard.inline import git, more
 from keyboard.reply import start_keyboard
 from handlers.make_shot import make_shot
 
@@ -48,7 +49,10 @@ async def bye_cmd(message: types.Message):
 @user_private_router.message(Command('help'))
 async def help_cmd(message: types.Message):
     """Хэндлер на обработку URL и возвращения скриншота"""
-    await message.answer(f'<b>{message.from_user.first_name}</b> ' + COMMAND_LIST)
+    await message.answer(
+        f'<b>{message.from_user.first_name}</b> ' + COMMAND_LIST,
+        reply_markup=git
+    )
 
 
 # Код для состояний машины FSM
@@ -56,6 +60,7 @@ class MakeShot(StatesGroup):
     url = State()
     process = State()
     screenshot_path = State()
+    info = State()
 
 
 # Хэндлер для запуска команды make_shot
@@ -65,21 +70,9 @@ async def shot_cmd(message: types.Message, state: FSMContext):
     """Хэндлер для запуска команды make_shot"""
     await message.answer(
         f'<b>{message.from_user.first_name}</b> ' + URL_ANSWER,
-        reply_markup=types.ReplyKeyboardRemove()
+        reply_markup=None
     )
     await state.set_state(MakeShot.url)
-
-
-# Хэндлер на отмену команды make_shot
-@user_private_router.message(F.text.lower() == 'отмена')
-@user_private_router.message(Command('/cancel'))
-async def cancel_cmd(message: types.Message, state: FSMContext):
-    """Хэндлер на отмену команды make_shot"""
-    await message.answer(
-        f'Действия отменены',
-        reply_markup=start_keyboard
-    )
-    await state.finish()  # Отменяем состояние при отмене команды
 
 
 # Хэндлер получения скриншота
@@ -102,11 +95,20 @@ async def process_cmd(message: types.Message, state: FSMContext):
     await state.set_state(MakeShot.process)
     result = await make_shot(date, user_id, url)
     if result:
-        screenshot_path, title = result
-        await state.update_data(screenshot_path=screenshot_path)
-        await state.set_state(MakeShot.screenshot_path)
-        # Сразу после установки состояния MakeShot.screenshot_path отправляем скриншот
-        await send_screenshot(message, state, start_time, title, process_message, process_sticker)
+        if len(result) == 3:
+            screenshot_path, title, info = result
+            await state.update_data(screenshot_path=screenshot_path)
+            await state.update_data(info=info)
+            await state.set_state(MakeShot.screenshot_path)
+            # Сразу после установки состояния MakeShot.screenshot_path отправляем скриншот
+            await send_screenshot(message, state, start_time, title, process_message, process_sticker, info)
+        else:
+            screenshot_path, title = result
+            await state.update_data(screenshot_path=screenshot_path)
+            await state.set_state(MakeShot.screenshot_path)
+            # Сразу после установки состояния MakeShot.screenshot_path отправляем скриншот
+            await send_screenshot(message, state, start_time, title, process_message, process_sticker)
+
     else:
         await message.answer("Ошибка при создании скриншота.")
         await state.clear()  # Отменяем состояние при ошибке
@@ -119,7 +121,8 @@ async def send_screenshot(
         start_time: float,
         title: str,
         process_message: types.Message,
-        process_animation: types.Message
+        process_animation: types.Message,
+        info: dict = None
 ):
     """Хэндлер отправки скриншота"""
     data = await state.get_data()  # Получаем данные из состояния
@@ -131,22 +134,44 @@ async def send_screenshot(
         f'🕸 Страница: <b>{title}</b>\n'
         f'🔗 URL: {url}\n'  # Используем URL из данных состояния
         f'⏱ Время обработки: <b>{finish_time} секунд(ы)</b>\n'
-        f'Вот “Подробнее”, которая показывает WHOIS сайта'
     )
+    if info:
+        new_message_text += "Вот “Подробнее”, которая показывает WHOIS сайта"
+        new_reply_markup = more
+    else:
+        new_message_text += "К сожалению не удалось получить WHOIS сайта"
+        new_reply_markup = None
+        await state.clear()  # Завершаем состояние после отправки скриншота
     await message.answer_photo(
         photo=FSInputFile(
             screenshot_path, filename=screenshot_path
         ), caption=new_message_text,
-        reply_markup=start_keyboard
+        reply_markup=new_reply_markup
     )
+
     # Удаляем сообщение о процессе и анимацию
     await process_message.delete()
     await process_animation.delete()
 
     # Отправляем стикер о завершении
     await message.answer_animation(DONE_STICKER)
-    await state.clear()  # Завершаем состояние после отправки скриншота
 
+
+@user_private_router.callback_query(F.data.in_(['подробнее', 'more']))
+async def more_info_callback(query: types.CallbackQuery, state: FSMContext):
+    # Обработка нажатия кнопки "Подробнее"
+    await query.answer()
+    # Получаем информацию из состояния или из базы данных
+    data = await state.get_data()
+    info = data.get('info')
+    if info:
+        # Отправляем информацию в чат
+        await query.message.answer(f'Информация WHOIS:\n{info}')
+    else:
+        await query.message.answer('К сожалению информацию WHOIS добыть не удалось')
+    await state.clear()
+    # Удаление сообщения с кнопкой "Подробнее"
+    await query.message.edit_reply_markup(reply_markup=None)
 
 
 @user_private_router.message()
