@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import FSInputFile
 
-from constants.constants import *
+from constants import constants
 from filters.chat_types import ChatTypeFilter
 from keyboard.inline import git, more
 from keyboard.reply import start_keyboard
@@ -24,10 +24,10 @@ user_private_router.message.filter(ChatTypeFilter(["private"]))
 async def start_cmd(message: types.Message):
     """Start command для бота."""
     await message.answer(
-        f'<b>{message.from_user.first_name}</b>' + GREETING_ANSWER,
+        f'<b>{message.from_user.first_name}</b>' + constants.GREETING_ANSWER,
         reply_markup=start_keyboard
     )
-    await message.answer_animation(HASBIK_HELLO)
+    await message.answer_animation(constants.HASBIK_HELLO)
     logger.info(f'{message.from_user.username} - начал работу с ботом.')
 
 
@@ -35,8 +35,8 @@ async def start_cmd(message: types.Message):
 @user_private_router.message(Command('hello'))
 async def hello_cmd(message: types.Message):
     """Хэндлер на обработку /hello и сообщения 'привет'"""
-    await message.reply(f'<b>{message.from_user.first_name}</b>' + GREETING_ANSWER)
-    await message.answer_animation(HASBIK_HELLO)
+    await message.reply(f'<b>{message.from_user.first_name}</b>' + constants.GREETING_ANSWER)
+    await message.answer_animation(constants.HASBIK_HELLO)
     logger.info(f'{message.from_user.username} - использовал команду hello.')
 
 
@@ -45,9 +45,9 @@ async def hello_cmd(message: types.Message):
 async def bye_cmd(message: types.Message):
     """Хэндлер на обработку /bye и сообщения 'пока'"""
     await message.reply(
-        BYE_ANSWER + f'<b>{message.from_user.first_name}</b>!'
+        constants.BYE_ANSWER + f'<b>{message.from_user.first_name}</b>!'
     )
-    await message.answer_animation(BYE_STICKER)
+    await message.answer_animation(constants.BYE_STICKER)
     logger.info(f'{message.from_user.username} - использовал команду bye.')
 
 
@@ -56,7 +56,7 @@ async def bye_cmd(message: types.Message):
 async def help_cmd(message: types.Message):
     """Хэндлер на обработку /help и сообщения 'помощь'"""
     await message.answer(
-        f'<b>{message.from_user.first_name}</b> ' + COMMAND_LIST,
+        f'<b>{message.from_user.first_name}</b> ' + constants.COMMAND_LIST,
         reply_markup=git
     )
     logger.info(f'{message.from_user.username} - использовал команду help.')
@@ -75,7 +75,7 @@ class MakeShot(StatesGroup):
 async def shot_cmd(message: types.Message, state: FSMContext):
     """Хэндлер для запуска команды make_shot"""
     await message.answer(
-        f'<b>{message.from_user.first_name}</b> ' + URL_ANSWER,
+        f'<b>{message.from_user.first_name}</b> ' + constants.URL_ANSWER,
     )
     await state.set_state(MakeShot.url)
     logger.info(f'{message.from_user.username}  - использовал команду сделать скриншот.')
@@ -106,7 +106,7 @@ async def process_cmd(message: types.Message, state: FSMContext):
         'К сожалению на это время другие комманды не работают 😪',
     )
     logger.info('Запущен процесс получения скриншота.')
-    process_sticker = await message.answer_animation(PROCESS_STICKER)
+    process_sticker = await message.answer_animation(constants.PROCESS_STICKER)
     await state.set_state(MakeShot.process)
     result = await make_shot(date, user_id, url)
     if result:
@@ -136,7 +136,7 @@ async def process_cmd(message: types.Message, state: FSMContext):
             logger.error(
                 'Функция make_shot вернула неожиданное количество аргументов'
             )
-            await message.answer(EXCEPTION_ANSWER)
+            await message.answer(constants.EXCEPTION_ANSWER)
 
     else:
         logger.error('Функция не вернула скриншот.')
@@ -193,7 +193,7 @@ async def send_screenshot(
     await process_message.delete()
     await process_animation.delete()
     # Отправляем стикер о завершении
-    await message.answer_animation(DONE_STICKER)
+    await message.answer_animation(constants.DONE_STICKER)
     logger.info('Функция отправки скриншота завершила работу.')
 
 
@@ -227,20 +227,22 @@ async def stub(message: types.Message):
             f'{message.from_user.username} - ввел несуществующую команду.'
         )
         text = message.text
-        if text.lower() in GREETINGS_WORDS:
-            await message.reply(f'<b>{user}</b>' + GREETING_ANSWER)
-            await message.answer_animation(HASBIK_HELLO)
-        elif text.lower() in FAREWELL_WORDS:
-            await message.reply(BYE_ANSWER + f'<b>{user}</b>!')
-            await message.answer_animation(BYE_STICKER)
+        if text.lower() in constants.GREETINGS_WORDS:
+            await hello_cmd(message)
+            # await message.reply(f'<b>{user}</b>' + constants.GREETING_ANSWER)
+            # await message.answer_animation(constants.HASBIK_HELLO)
+        elif text.lower() in constants.FAREWELL_WORDS:
+            await bye_cmd(message)
+            # await message.reply(constants.BYE_ANSWER + f'<b>{user}</b>!')
+            # await message.answer_animation(constants.BYE_STICKER)
         else:
             await message.answer(
-                UNKNOWN_ANSWER + f'<b>{text}</b>\n' + COMMAND_LIST
+                constants.UNKNOWN_ANSWER + f'<b>{text}</b>\n' + constants.COMMAND_LIST
             )
-            await message.answer_animation(UNKNOWN_STICKER)
+            await message.answer_animation(constants.UNKNOWN_STICKER)
     else:
         logger.warning(
             f'{message.from_user.username} - отправил не текстовое сообщение.'
         )
-        await message.answer(NON_TYPE_ANSWER)
-        await message.answer_animation(NON_TYPE_STICKER)
+        await message.answer(constants.NON_TYPE_ANSWER)
+        await message.answer_animation(constants.NON_TYPE_STICKER)
