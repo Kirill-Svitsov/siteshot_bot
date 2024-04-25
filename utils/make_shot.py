@@ -12,7 +12,10 @@ from PIL import Image
 from io import BytesIO
 import whois
 
-from constants.constants import MAX_SIZE_PICTURE, VALID_STATUS_CODES, HEADERS, SCREENSHOTS_DIR
+from constants.constants import (
+    MAX_SIZE_PICTURE, VALID_STATUS_CODES,
+    HEADERS, SCREENSHOTS_DIR
+)
 from utils.loger import logger
 
 
@@ -21,10 +24,10 @@ async def make_shot(date: str, user_id: int, url: str):
     Так как selenium работает синхронно, эта функция блокирует поток
     и не позволяет другим функциям обрабатывать запросы.
     """
-    # Проверяем, существует ли директория screenshots, если нет, создаем ее
+    # Проверяем, существует ли директория screenshots,
+    # если нет, создаем ее
     if not os.path.exists(SCREENSHOTS_DIR):
         os.makedirs(SCREENSHOTS_DIR)
-
     try:
         response = requests.get(url, headers=HEADERS)
         response.raise_for_status()
@@ -34,7 +37,9 @@ async def make_shot(date: str, user_id: int, url: str):
     logger.info(f'Функция make_shot начала работу.')
     logger.info(f'Функция make_shot получила ответ: {response.status_code}')
     if response.status_code not in VALID_STATUS_CODES:
-        logger.warning(f'Функция make_shot не смогла получить доступ к странице.')
+        logger.warning(
+            f'Функция make_shot не смогла получить доступ к странице.'
+        )
         return
     # Получаем Title страницы
     logger.info(f'Функция make_shot получила доступ к странице.')
@@ -42,8 +47,8 @@ async def make_shot(date: str, user_id: int, url: str):
     title = soup.find('title').text
     # Создаем объект опций для настройки браузера
     options = Options()
-    options.add_argument("--no-sandbox")  # Необязательно
-    options.add_argument("--headless")  # Необязательно
+    options.add_argument("--no-sandbox")
+    options.add_argument("--headless")
     # Инициализируем драйвер с помощью ChromeDriverManager
     service = Service()
     driver = webdriver.Chrome(options=options, service=service)
@@ -67,9 +72,13 @@ async def make_shot(date: str, user_id: int, url: str):
     image = Image.open(BytesIO(screenshot))
     # Очищаем URL и дату для сохранения файла
     cleaned_url = re.sub(r'[^\w\-_]', '', url)
-    date_formatted = datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f").strftime("%d_%m_%Y")
+    date_formatted = datetime.strptime(
+        date, "%Y-%m-%d %H:%M:%S.%f"
+    ).strftime("%d_%m_%Y")
     # Строим путь к файлу скриншота с помощью os.path.join()
-    screenshot_filename = f'user_id_{user_id}_url_{cleaned_url}_date_{date_formatted}.png'
+    screenshot_filename = (
+        f'user_id_{user_id}_url_{cleaned_url}_date_{date_formatted}.png'
+    )
     screenshot_path = os.path.join(SCREENSHOTS_DIR, screenshot_filename)
     # Сохраняем обрезанный скриншот в файл
     with open(screenshot_path, 'wb') as file:
@@ -81,5 +90,7 @@ async def make_shot(date: str, user_id: int, url: str):
             logger.info('Функция make_shot получила WHOIS.')
             return screenshot_path, title, info
     except Exception as e:
-        logger.error(f'Функция make_shot не получила WHOIS. Причина - {e}.')
+        logger.error(
+            f'Функция make_shot не получила WHOIS. Причина - {e}.'
+        )
     return screenshot_path, title
