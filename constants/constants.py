@@ -33,7 +33,7 @@ COMMAND_LIST = (f'Вот список моих комманд:\n\n'
                 f'/hello - поздороваться\n\n'
                 f'/bye - попрощаться\n\n'
                 f'Случайный текст, картинка, все-что угодно тоже даст ответ!')
-URL_ANSWER = 'Введите пожалуйста URL в формате: https://www.example.com.'
+URL_ANSWER = 'Введите пожалуйста URL в формате: https://www.example.com'
 # Ответ на сообщение не текстового типа
 NON_TYPE_ANSWER = f'К сожалению на текущий момент я умею работать только с текстом'
 NON_TYPE_STICKER = 'CAACAgIAAxkBAAEE63xmJrtcBhtpevidtv75QlI83TRcUgACmjQAAogW6ErexTv1TVEynzQE'
@@ -41,7 +41,7 @@ NON_TYPE_STICKER = 'CAACAgIAAxkBAAEE63xmJrtcBhtpevidtv75QlI83TRcUgACmjQAAogW6Ere
 PROCESS_STICKER = 'CAACAgIAAxkBAAEE6wpmJq3d7BAGzt7XfGP4un3-rJZo6QACHhUAAqXT6UtSdby4kVVLQjQE'
 DONE_STICKER = 'CAACAgIAAxkBAAEE6zFmJq9Wtsgvl9E3JhooQgpyXNHA6QACAQADdJypFpeZtNvQv9HZNAQ'
 # Неожиданный ответ
-EXCEPTION_ANSWER = 'Что-то пошло не по плану'
+EXCEPTION_ANSWER = 'Что-то пошло не так.\nПожалуйста проверьте введенный URL'
 # Ограничение размера скриншота
 MAX_SIZE_PICTURE = 1900
 # Директория для сохранения скриншотов

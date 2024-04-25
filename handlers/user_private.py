@@ -127,8 +127,8 @@ async def process_cmd(message: types.Message, state: FSMContext):
         constants.PROCESS_STICKER
     )
     await state.set_state(MakeShot.process)
-    try:
-        result = await make_shot(date, user_id, url)
+    result = await make_shot(date, user_id, url)
+    if result:
         logger.info('Скриншот получен. Функция продолжает работу.')
         if len(result) == 3:
             logger.info('Функция вернула все аргуенты,'
@@ -152,17 +152,15 @@ async def process_cmd(message: types.Message, state: FSMContext):
                 title, process_message,
                 process_sticker
             )
-        else:
-            logger.error(
-                'Функция make_shot вернула'
-                ' неожиданное количество аргументов'
-            )
-            await message.answer(constants.EXCEPTION_ANSWER)
-    except RequestException as e:
-        logger.error(f'Ошибка при запросе к URL: {e}')
+    else:
+        logger.error(
+            'Функция make_shot не получила доступ к сайту.'
+        )
         await state.clear()
-        await message.answer('Произошла ошибка, пожалуйста'
-                             'попробуйте позже.')
+        logger.info('Состояние FSM машины сброшено.')
+        await process_message.delete()
+        await process_sticker.delete()
+        await message.answer(constants.EXCEPTION_ANSWER)
 
 
 @user_private_router.message(MakeShot.screenshot_path)

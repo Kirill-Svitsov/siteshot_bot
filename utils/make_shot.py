@@ -30,10 +30,10 @@ async def make_shot(date: str, user_id: int, url: str):
         os.makedirs(SCREENSHOTS_DIR)
     try:
         response = requests.get(url, headers=HEADERS)
-        response.raise_for_status()
     except RequestException as e:
         logger.error(f'Ошибка при запросе к URL: {e}')
         return None
+    response.raise_for_status()
     logger.info('Функция make_shot начала работу.')
     logger.info(f'Функция make_shot получила ответ: {response.status_code}')
     if response.status_code not in VALID_STATUS_CODES:
