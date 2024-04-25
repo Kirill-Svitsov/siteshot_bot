@@ -71,7 +71,12 @@ async def make_shot(date: str, user_id: int, url: str):
     # Устанавливаем размеры окна браузера, чтобы оно вместило всю страницу
     driver.set_window_size(total_width, total_height)
     # Снимаем скриншот всей страницы
-    screenshot = driver.find_element("tag name", "body").screenshot_as_png
+    try:
+        screenshot = driver.find_element("tag name", "body").screenshot_as_png
+    except Exception as e:
+        logger.error(f'Не удалось сделать скриншот.'
+                     f'Причина: {e}')
+        return
     # Закрываем браузер
     driver.quit()
     # Форматируем
