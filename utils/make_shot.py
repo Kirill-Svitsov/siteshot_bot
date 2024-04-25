@@ -44,7 +44,13 @@ async def make_shot(date: str, user_id: int, url: str):
     # Получаем Title страницы
     logger.info('Функция make_shot получила доступ к странице.')
     soup = BeautifulSoup(response.content, 'html.parser')
-    title = soup.find('title').text
+    try:
+        title = soup.find('title').text
+        logger.info(f'Функция получила title = {title}')
+    except AttributeError as e:
+        logger.error(f'Функция не смогу получить title.'
+                     f'Причина: {e}')
+        title = 'Не удалось получить title'
     # Создаем объект опций для настройки браузера
     options = Options()
     options.add_argument("--no-sandbox")
