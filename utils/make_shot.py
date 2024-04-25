@@ -33,7 +33,6 @@ async def make_shot(date: str, user_id: int, url: str):
         response.raise_for_status()
     except RequestException as e:
         logger.error(f'Ошибка при запросе к URL: {e}')
-        return None
     logger.info('Функция make_shot начала работу.')
     logger.info(f'Функция make_shot получила ответ: {response.status_code}')
     if response.status_code not in VALID_STATUS_CODES:
