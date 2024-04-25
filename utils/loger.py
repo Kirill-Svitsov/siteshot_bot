@@ -9,7 +9,8 @@ if not os.path.exists(LOGS_DIR):
     os.makedirs(LOGS_DIR)
 # Инициализация логгера
 logger = logging.getLogger(__name__)
-FORMAT = '%(levelname)s (%(asctime)s): %(message)s (Line: %(lineno)d) [%(filename)s]'
+FORMAT = ('%(levelname)s (%(asctime)s): %(message)s'
+          ' (Line: %(lineno)d) [%(filename)s]')
 logger.setLevel(logging.INFO)
 # Формируем консольный логгер
 stream_handler = logging.StreamHandler()

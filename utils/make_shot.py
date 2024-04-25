@@ -34,15 +34,15 @@ async def make_shot(date: str, user_id: int, url: str):
     except RequestException as e:
         logger.error(f'Ошибка при запросе к URL: {e}')
         return None
-    logger.info(f'Функция make_shot начала работу.')
+    logger.info('Функция make_shot начала работу.')
     logger.info(f'Функция make_shot получила ответ: {response.status_code}')
     if response.status_code not in VALID_STATUS_CODES:
         logger.warning(
-            f'Функция make_shot не смогла получить доступ к странице.'
+            'Функция make_shot не смогла получить доступ к странице.'
         )
         return
     # Получаем Title страницы
-    logger.info(f'Функция make_shot получила доступ к странице.')
+    logger.info('Функция make_shot получила доступ к странице.')
     soup = BeautifulSoup(response.content, 'html.parser')
     title = soup.find('title').text
     # Создаем объект опций для настройки браузера
@@ -58,10 +58,10 @@ async def make_shot(date: str, user_id: int, url: str):
     total_height = driver.execute_script("return document.body.scrollHeight")
     # Проверка на допустимые значения изображения в Telegram
     if total_height > MAX_SIZE_PICTURE or total_width > MAX_SIZE_PICTURE:
-        logger.info(f'Размеры скриншота превышают допустимые.')
+        logger.info('Размеры скриншота превышают допустимые.')
         total_height = total_width = MAX_SIZE_PICTURE
     else:
-        logger.info(f'Размеры скриншота проходят/')
+        logger.info('Размеры скриншота проходят.')
     # Устанавливаем размеры окна браузера, чтобы оно вместило всю страницу
     driver.set_window_size(total_width, total_height)
     # Снимаем скриншот всей страницы
