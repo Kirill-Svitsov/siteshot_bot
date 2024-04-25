@@ -23,9 +23,19 @@ dp = Dispatcher()
 dp.include_routers(user_private_router, user_group_router)
 
 
+async def on_startup(bot):
+    logger.info('Бот запущен')
+
+
+async def on_shutdown(bot):
+    logger.info('Бот выключен')
+
+
 async def main():
     """Ассинхронная функция запуска бота"""
     try:
+        dp.startup.register(on_startup)
+        dp.shutdown.register(on_shutdown)
         await bot.delete_webhook(drop_pending_updates=True)
         await bot.set_my_commands(
             commands=private,

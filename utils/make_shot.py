@@ -61,7 +61,7 @@ async def make_shot(date: str, user_id: int, url: str):
         logger.info('Размеры скриншота превышают допустимые.')
         total_height = total_width = MAX_SIZE_PICTURE
     else:
-        logger.info('Размеры скриншота проходят.')
+        logger.info('Размеры скриншота проходят/')
     # Устанавливаем размеры окна браузера, чтобы оно вместило всю страницу
     driver.set_window_size(total_width, total_height)
     # Снимаем скриншот всей страницы
