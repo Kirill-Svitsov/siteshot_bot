@@ -1,6 +1,6 @@
-import time
 from datetime import datetime
 import re
+import time
 
 from aiogram import types, Router, F
 from aiogram.filters import CommandStart, Command, StateFilter
@@ -34,7 +34,7 @@ async def start_cmd(message: types.Message):
 @user_private_router.message(F.text.lower() == 'привет')
 @user_private_router.message(Command('hello'))
 async def hello_cmd(message: types.Message):
-    """Хэндлер на обработку URL и возвращения скриншота"""
+    """Хэндлер на обработку /hello и сообщения 'привет'"""
     await message.reply(f'<b>{message.from_user.first_name}</b>' + GREETING_ANSWER)
     await message.answer_animation(HASBIK_HELLO)
     logger.info(f'{message.from_user.username} - использовал команду hello.')
@@ -43,8 +43,10 @@ async def hello_cmd(message: types.Message):
 @user_private_router.message(F.text.lower() == 'пока')
 @user_private_router.message(Command('bye'))
 async def bye_cmd(message: types.Message):
-    """Хэндлер на обработку URL и возвращения скриншота"""
-    await message.reply(BYE_ANSWER + f'<b>{message.from_user.first_name}</b>!')
+    """Хэндлер на обработку /bye и сообщения 'пока'"""
+    await message.reply(
+        BYE_ANSWER + f'<b>{message.from_user.first_name}</b>!'
+    )
     await message.answer_animation(BYE_STICKER)
     logger.info(f'{message.from_user.username} - использовал команду bye.')
 
@@ -52,7 +54,7 @@ async def bye_cmd(message: types.Message):
 @user_private_router.message(F.text.lower() == 'помощь')
 @user_private_router.message(Command('help'))
 async def help_cmd(message: types.Message):
-    """Хэндлер на обработку URL и возвращения скриншота"""
+    """Хэндлер на обработку /help и сообщения 'помощь'"""
     await message.answer(
         f'<b>{message.from_user.first_name}</b> ' + COMMAND_LIST,
         reply_markup=git
@@ -68,27 +70,26 @@ class MakeShot(StatesGroup):
     info = State()
 
 
-# Хэндлер для запуска команды make_shot
 @user_private_router.message(StateFilter(None), F.text.lower() == 'сделать скриншот')
 @user_private_router.message(Command('make_shot'))
 async def shot_cmd(message: types.Message, state: FSMContext):
     """Хэндлер для запуска команды make_shot"""
     await message.answer(
         f'<b>{message.from_user.first_name}</b> ' + URL_ANSWER,
-        reply_markup=None
     )
     await state.set_state(MakeShot.url)
     logger.info(f'{message.from_user.username}  - использовал команду сделать скриншот.')
 
 
-# Хэндлер получения скриншота
 @user_private_router.message(MakeShot.url, F.text)
 async def process_cmd(message: types.Message, state: FSMContext):
     """Хэндлер получения скриншота"""
     date = str(datetime.now())
     user_id = int(message.from_user.id)
     url = message.text
+    # Создаем стартовую метку времени
     start_time = time.time()
+    # Создаем маску на проверку URL
     url_pattern = re.compile(r'^https?://(?:[\w-]+\.?)+[\w]+(?:/\S*)?')
     if not url_pattern.match(url):
         await message.answer(
@@ -107,17 +108,6 @@ async def process_cmd(message: types.Message, state: FSMContext):
     logger.info('Запущен процесс получения скриншота.')
     process_sticker = await message.answer_animation(PROCESS_STICKER)
     await state.set_state(MakeShot.process)
-
-    # Хотел добавить таймер на долгий ответ, но selenium синхронная
-    # Поэтому она выполниться в любом случае, и таймер не сработает.
-    # async def timeout_handler():
-    #     await asyncio.sleep(45)
-    #     await message.answer("Извините, что-то пошло не так. Процесс занимает слишком много времени.")
-    #     await state.set_state(MakeShot.url)
-    #
-    # # Запускаем таймер
-    # timeout_task = asyncio.create_task(timeout_handler())
-
     result = await make_shot(date, user_id, url)
     if result:
         logger.info('Скриншот получен. Функция продолжает работу.')
@@ -127,15 +117,26 @@ async def process_cmd(message: types.Message, state: FSMContext):
             await state.update_data(screenshot_path=screenshot_path)
             await state.update_data(info=info)
             await state.set_state(MakeShot.screenshot_path)
-            # Сразу после установки состояния MakeShot.screenshot_path отправляем скриншот
-            await send_screenshot(message, state, start_time, title, process_message, process_sticker, info)
-        else:
+            await send_screenshot(
+                message, state, start_time,
+                title, process_message,
+                process_sticker, info
+            )
+        elif len(result) == 2:
             logger.info('Функция вернула скриншот, без WHOIS.')
             screenshot_path, title = result
             await state.update_data(screenshot_path=screenshot_path)
             await state.set_state(MakeShot.screenshot_path)
-            # Сразу после установки состояния MakeShot.screenshot_path отправляем скриншот
-            await send_screenshot(message, state, start_time, title, process_message, process_sticker)
+            await send_screenshot(
+                message, state, start_time,
+                title, process_message,
+                process_sticker
+            )
+        else:
+            logger.error(
+                'Функция make_shot вернула неожиданное количество аргументов'
+            )
+            await message.answer(EXCEPTION_ANSWER)
 
     else:
         logger.error('Функция не вернула скриншот.')
@@ -156,14 +157,18 @@ async def send_screenshot(
         info: dict = None
 ):
     """Хэндлер отправки скриншота"""
-    data = await state.get_data()  # Получаем данные из состояния
-    screenshot_path = data.get('screenshot_path')  # Получаем путь к скриншоту из данных состояния
-    url = data.get('url')  # Получаем URL из данных состояния
+    # Получаем данные из состояния
+    data = await state.get_data()
+    # Получаем путь к скриншоту из данных состояния
+    screenshot_path = data.get('screenshot_path')
+    # Получаем URL из данных состояния
+    url = data.get('url')
+    # Фиксируем время выполнения функции
     finish_time = round((time.time() - start_time), 1)
     new_message_text = (
         f'✔ Скриншот сохранен и отправлен в чат:\n'
         f'🕸 Страница: <b>{title}</b>\n'
-        f'🔗 URL: {url}\n'  # Используем URL из данных состояния
+        f'🔗 URL: {url}\n'
         f'⏱ Время обработки: <b>{finish_time} секунд(ы)</b>\n'
     )
     if info:
@@ -174,8 +179,8 @@ async def send_screenshot(
         logger.warning('WHOIS не будет отправлен в чат.')
         new_message_text += "К сожалению не удалось получить WHOIS сайта"
         new_reply_markup = None
-        await state.clear()  # Завершаем состояние после отправки скриншота
-    # Удаляем сообщение о процессе и
+        # Завершаем состояние после отправки скриншота
+        await state.clear()
     await message.answer_photo(
         photo=FSInputFile(
             screenshot_path, filename=screenshot_path
@@ -194,17 +199,19 @@ async def send_screenshot(
 
 @user_private_router.callback_query(F.data.in_(['подробнее', 'more']))
 async def more_info_callback(query: types.CallbackQuery, state: FSMContext):
-    # Обработка нажатия кнопки "Подробнее"
+    """Фунция обработки callback 'Подробнее', при наличии WHOIS"""
     await query.answer()
     # Получаем информацию из состояния или из базы данных
     data = await state.get_data()
     info = data.get('info')
     if info:
+        # Проверка - страховка
         logger.info('Нажата кнопка "Подробнее" к скриншоту.')
         # Отправляем информацию в чат
         await query.message.answer(f'Информация WHOIS:\n{info}')
     else:
         await query.message.answer('К сожалению информацию WHOIS добыть не удалось')
+    # Сбрасываем состояние машины
     await state.clear()
     logger.info(f'Состояние FSM машины сброшено.')
     # Удаление сообщения с кнопкой "Подробнее"
@@ -216,7 +223,9 @@ async def stub(message: types.Message):
     """Ответ - заглушка на неизвестные команды."""
     user = message.from_user.first_name
     if message.text:
-        logger.info(f'{message.from_user.username} - ввел несуществующую команду.')
+        logger.info(
+            f'{message.from_user.username} - ввел несуществующую команду.'
+        )
         text = message.text
         if text.lower() in GREETINGS_WORDS:
             await message.reply(f'<b>{user}</b>' + GREETING_ANSWER)
@@ -230,6 +239,8 @@ async def stub(message: types.Message):
             )
             await message.answer_animation(UNKNOWN_STICKER)
     else:
-        logger.warning(f'{message.from_user.username} - отправил не текстовое сообщение.')
+        logger.warning(
+            f'{message.from_user.username} - отправил не текстовое сообщение.'
+        )
         await message.answer(NON_TYPE_ANSWER)
         await message.answer_animation(NON_TYPE_STICKER)

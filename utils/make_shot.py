@@ -27,7 +27,7 @@ async def make_shot(date: str, user_id: int, url: str):
 
     try:
         response = requests.get(url, headers=HEADERS)
-        response.raise_for_status()  # Проверяем, был ли получен успешный ответ (код 2xx)
+        response.raise_for_status()
     except RequestException as e:
         logger.error(f'Ошибка при запросе к URL: {e}')
         return None
