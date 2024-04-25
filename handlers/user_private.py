@@ -7,6 +7,7 @@ from aiogram.filters import CommandStart, Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import FSInputFile
+from requests import RequestException
 
 from constants import constants
 from filters.chat_types import ChatTypeFilter
@@ -126,8 +127,8 @@ async def process_cmd(message: types.Message, state: FSMContext):
         constants.PROCESS_STICKER
     )
     await state.set_state(MakeShot.process)
-    result = await make_shot(date, user_id, url)
-    if result:
+    try:
+        result = await make_shot(date, user_id, url)
         logger.info('Скриншот получен. Функция продолжает работу.')
         if len(result) == 3:
             logger.info('Функция вернула все аргуенты,'
@@ -157,14 +158,11 @@ async def process_cmd(message: types.Message, state: FSMContext):
                 ' неожиданное количество аргументов'
             )
             await message.answer(constants.EXCEPTION_ANSWER)
-
-    else:
-        logger.error('Функция не вернула скриншот.')
-        await message.answer(
-            "Ошибка при создании скриншота,"
-            " бот не может получить доступ к URL."
-        )
-        await state.clear()  # Отменяем состояние при ошибке
+    except RequestException as e:
+        logger.error(f'Ошибка при запросе к URL: {e}')
+        await state.clear()
+        await message.answer('Произошла ошибка, пожалуйста'
+                             'попробуйте позже.')
 
 
 @user_private_router.message(MakeShot.screenshot_path)
