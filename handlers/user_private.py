@@ -62,7 +62,7 @@ async def bye_cmd(message: types.Message):
 async def help_cmd(message: types.Message):
     """Хэндлер на обработку /help и сообщения 'помощь'"""
     await message.answer(
-        f'<b>{message.from_user.first_name}</b> '
+        f'<b>{message.from_user.first_name}</b> \n'
         f'{constants.COMMAND_LIST}',
         reply_markup=git
     )
@@ -103,6 +103,8 @@ async def process_cmd(message: types.Message, state: FSMContext):
     start_time = time.time()
     # Создаем маску на проверку URL
     url_pattern = re.compile(r'^https?://(?:[\w-]+\.?)+[\w]+(?:/\S*)?')
+    # По хорошему нужно добавить обработку, когда URL высылают без протокола
+    # то - есть www.vk.ru - условно
     if not url_pattern.match(url):
         await message.answer(
             "URL не соответствует шаблону."
@@ -118,7 +120,8 @@ async def process_cmd(message: types.Message, state: FSMContext):
         'Получаю скриншот...\n'
         'К сожалению на это время другие комманды не работают 😪',
     )
-    logger.info('Запущен процесс получения скриншота.')
+    logger.info(f'Запущен процесс получения скриншота'
+                f'по URL = {url}')
     process_sticker = await message.answer_animation(
         constants.PROCESS_STICKER
     )

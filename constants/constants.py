@@ -28,10 +28,10 @@ BYE_STICKER = 'CAACAgIAAxkBAAEE6xZmJq7g6za9IijujoZLfFp6deh3GwACNBIAAhKD-Uv6vzFHb
 UNKNOWN_ANSWER = f'к сожалению у меня нет команды: '
 UNKNOWN_STICKER = 'CAACAgIAAxkBAAEE6w5mJq5UrKhBRLuaYC6pz8z3eBPjNwACpQUAAiMFDQABrU3UopUKcHs0BA'
 # Список команд
-COMMAND_LIST = (f'Вот список моих комманд:\n'
-                f'/make_shot - сделать скриншот Web страницы. Все, что мне нужно, это полный адрес.\n'
-                f'/hello - поздороваться\n'
-                f'/bye - попрощаться\n'
+COMMAND_LIST = (f'Вот список моих комманд:\n\n'
+                f'/make_shot - сделать скриншот Web страницы. Все, что мне нужно, это полный адрес.\n\n'
+                f'/hello - поздороваться\n\n'
+                f'/bye - попрощаться\n\n'
                 f'Случайный текст, картинка, все-что угодно тоже даст ответ!')
 URL_ANSWER = 'Введите пожалуйста URL в формате: https://www.example.com.'
 # Ответ на сообщение не текстового типа

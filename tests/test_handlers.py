@@ -56,7 +56,8 @@ class TestBaseHandler(unittest.IsolatedAsyncioTestCase):
         message = AsyncMock()
         await help_cmd(message)
         message.answer.assert_called_with(
-            f'<b>{message.from_user.first_name}</b> ' + COMMAND_LIST,
+            f'<b>{message.from_user.first_name}</b> \n'
+            f'{COMMAND_LIST}',
             reply_markup=git
         )
 
