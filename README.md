@@ -3,7 +3,8 @@
 [![Telegram Badge](https://img.shields.io/badge/-siteshotbot-blue?style=flat&logo=Telegram&logoColor=white)](https://t.me/svitsov_site_shot_bot)
 
 ## Общее описание
-Тестовое задание для компании True Positive Lab
+Бот, который присылает скриншот веб - страницы в ответ на присланную боту ссылку.
+Тестовое задание для компании True Positive Lab.
 
 
 ## Стэк:
