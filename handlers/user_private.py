@@ -1,45 +1,94 @@
-from datetime import datetime
 import re
 import time
+from datetime import datetime
 
 from aiogram import types, Router, F
 from aiogram.filters import CommandStart, Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import FSInputFile
-from requests import RequestException
-
+from aiogram.types import FSInputFile, ReplyKeyboardRemove
 from constants import constants
 from filters.chat_types import ChatTypeFilter
 from keyboard.inline import git, more
-from keyboard.reply import start_keyboard
+from keyboard.reply import ru_keyboard, en_keyboard, choose_language, lng
 from utils.loger import logger
 from utils.make_shot import make_shot
 
 user_private_router = Router()
 # Устанавливаем фильтрацию на роутер для хэндлеров приватных чатов
 user_private_router.message.filter(ChatTypeFilter(["private"]))
+# По умолчанию устанавливаем русский язык
+CHOSEN_LANGUAGE = constants.RU
 
 
+class LanguageState(StatesGroup):
+    language = State()
+
+
+# ReplyKeyboardRemove()
 @user_private_router.message(CommandStart())
-async def start_cmd(message: types.Message):
-    """Start command для бота."""
+async def command_start(message: types.Message) -> None:
     await message.answer(
         f'<b>{message.from_user.first_name}</b> '
-        f'{constants.GREETING_ANSWER}',
-        reply_markup=start_keyboard
+        f'{constants.START_ANSWER}',
+        reply_markup=lng
     )
-    await message.answer_animation(constants.HASBIK_HELLO)
-    logger.info(f'{message.from_user.username} - '
-                f'начал работу с ботом.')
+    logger.info(f'{message.from_user.first_name} начал работу с ботом.')
 
 
-@user_private_router.message(F.text.lower() == 'привет')
+@user_private_router.message(
+    (F.text.lower() == 'chose language') | (F.text.lower() == 'выбрать язык')
+)
+@user_private_router.message(Command('choose_language'))
+async def choose_language_cmd(message: types.Message, state: FSMContext):
+    """Хэндлер на обработку /hello и сообщения 'привет'"""
+    await state.set_state(LanguageState.language)
+    await message.answer('Выберите язык: ', reply_markup=choose_language)
+    logger.info(f'{message.from_user.first_name} выбирает язык.')
+
+
+@user_private_router.message(LanguageState.language)
+async def set_language(message: types.Message, state: FSMContext) -> None:
+    global CHOSEN_LANGUAGE
+    await state.update_data(language=message.text)
+    language = message.text.lower()
+    CHOSEN_LANGUAGE = language
+    if language == 'русский':
+        await state.update_data(language=message.text)
+        await message.answer(
+            'Отлично! Продолжим на русском языке.',
+            reply_markup=ru_keyboard
+        )
+        logger.info(f'{message.from_user.first_name} выбрал русский язык.')
+        await state.clear()
+    elif language == 'english':
+        await message.answer(
+            'Great! Lets continue in English.',
+            reply_markup=en_keyboard
+        )
+        logger.info(f'{message.from_user.first_name} выбрал английский язык.')
+        await state.update_data(language=message.text)
+        await state.clear()
+    else:
+        await message.answer(
+            'Вероятно вы ввели что-то не то.'
+            'Пожалуйста выберите язык снова:',
+            reply_markup=choose_language
+        )
+        logger.warning(f'{message.from_user.first_name} ошибся при выборе языка.')
+
+
+@user_private_router.message((F.text.lower() == 'привет') | (F.text.lower() == 'hello'))
 @user_private_router.message(Command('hello'))
 async def hello_cmd(message: types.Message):
+    global CHOSEN_LANGUAGE
     """Хэндлер на обработку /hello и сообщения 'привет'"""
-    await message.reply(f'<b>{message.from_user.first_name}</b> '
-                        f'{constants.GREETING_ANSWER}')
+    if CHOSEN_LANGUAGE == constants.RU:
+        await message.reply(f'<b>{message.from_user.first_name}</b> '
+                            f'{constants.GREETING_ANSWER_RU}')
+    else:
+        await message.reply(f'<b>{message.from_user.first_name}</b> '
+                            f'{constants.GREETING_ANSWER_EN}')
     await message.answer_animation(constants.HASBIK_HELLO)
     logger.info(f'{message.from_user.username} - '
                 f'использовал команду hello.')
@@ -49,29 +98,44 @@ async def hello_cmd(message: types.Message):
 @user_private_router.message(Command('bye'))
 async def bye_cmd(message: types.Message):
     """Хэндлер на обработку /bye и сообщения 'пока'"""
-    await message.reply(
-        f'{constants.BYE_ANSWER} '
-        f'<b>{message.from_user.first_name}</b>!'
-    )
+    global CHOSEN_LANGUAGE
+    if CHOSEN_LANGUAGE == constants.RU:
+        await message.reply(
+            f'{constants.BYE_ANSWER_RU} '
+            f'<b>{message.from_user.first_name}</b>!'
+        )
+    else:
+        await message.reply(
+            f'{constants.BYE_ANSWER_EN} '
+            f'<b>{message.from_user.first_name}</b>!'
+        )
     await message.answer_animation(constants.BYE_STICKER)
     logger.info(f'{message.from_user.username} - '
                 f'использовал команду bye.')
 
 
-@user_private_router.message(F.text.lower() == 'помощь')
+@user_private_router.message((F.text.lower() == 'помощь') | (F.text.lower() == 'help'))
 @user_private_router.message(Command('help'))
 async def help_cmd(message: types.Message):
     """Хэндлер на обработку /help и сообщения 'помощь'"""
-    await message.answer(
-        f'<b>{message.from_user.first_name}</b> \n'
-        f'{constants.COMMAND_LIST}',
-        reply_markup=git
-    )
+    global CHOSEN_LANGUAGE
+    if CHOSEN_LANGUAGE == constants.RU:
+        await message.answer(
+            f'<b>{message.from_user.first_name}</b> \n'
+            f'{constants.COMMAND_LIST_RU}',
+            reply_markup=git
+        )
+    else:
+        await message.answer(
+            f'<b>{message.from_user.first_name}</b> \n'
+            f'{constants.COMMAND_LIST_EN}',
+            reply_markup=git
+        )
     logger.info(f'{message.from_user.username} -'
                 f' использовал команду help.')
 
 
-# Код для состояний машины FSM
+# Код для состояний машины FSM для скриншота
 class MakeShot(StatesGroup):
     url = State()
     process = State()
@@ -81,14 +145,20 @@ class MakeShot(StatesGroup):
 
 @user_private_router.message(
     StateFilter(None),
-    F.text.lower() == 'сделать скриншот'
+    (F.text.lower() == 'сделать скриншот') | (F.text.lower() == 'make screen')
 )
 @user_private_router.message(Command('make_shot'))
 async def shot_cmd(message: types.Message, state: FSMContext):
     """Хэндлер для запуска команды make_shot"""
-    await message.answer(
-        f'<b>{message.from_user.first_name}</b> ' + constants.URL_ANSWER,
-    )
+    global CHOSEN_LANGUAGE
+    if CHOSEN_LANGUAGE == constants.RU:
+        await message.answer(
+            f'<b>{message.from_user.first_name}</b> ' + constants.URL_ANSWER_RU,
+        )
+    else:
+        await message.answer(
+            f'<b>{message.from_user.first_name}</b> ' + constants.URL_ANSWER_EN,
+        )
     await state.set_state(MakeShot.url)
     logger.info(f'{message.from_user.username}'
                 f'  - использовал команду сделать скриншот.')
@@ -97,6 +167,7 @@ async def shot_cmd(message: types.Message, state: FSMContext):
 @user_private_router.message(MakeShot.url, F.text)
 async def process_cmd(message: types.Message, state: FSMContext):
     """Хэндлер получения скриншота"""
+    global CHOSEN_LANGUAGE
     date = str(datetime.now())
     user_id = int(message.from_user.id)
     url = message.text
@@ -106,20 +177,28 @@ async def process_cmd(message: types.Message, state: FSMContext):
     url_pattern = re.compile(r'^https?://(?:[\w-]+\.?)+[\w]+(?:/\S*)?')
     # По хорошему нужно добавить обработку, когда URL высылают без протокола
     # то - есть www.vk.ru - условно
+    if CHOSEN_LANGUAGE == constants.RU:
+        wrong_url_answer_answer = constants.WRONG_URL_RU
+        process_message = constants.PROCESS_MESSAGE_RU
+        keyboard = ru_keyboard
+    else:
+        wrong_url_answer_answer = constants.WRONG_URL_EN
+        process_message = constants.PROCESS_MESSAGE_EN
+        keyboard = en_keyboard
     if not url_pattern.match(url):
         await message.answer(
-            "URL не соответствует шаблону."
-            " Пожалуйста, введите корректный URL."
+            text=wrong_url_answer_answer,
+            reply_markup=keyboard
         )
         logger.error(
             f'{message.from_user.username}'
-            f' - использовал неккоретный URL: {message.text}'
+            f' - использовал неккоретный URL: {message.text}',
         )
         return
     await state.update_data(url=message.text)
     process_message = await message.answer(
-        'Получаю скриншот...\n'
-        'В это время вы можете пользоваться другими командами.'
+        text=process_message,
+        reply_markup=keyboard
     )
     logger.info(f'Запущен процесс получения скриншота'
                 f'по URL = {url}')
@@ -174,6 +253,7 @@ async def send_screenshot(
         info: dict = None
 ):
     """Хэндлер отправки скриншота"""
+    global CHOSEN_LANGUAGE
     # Получаем данные из состояния
     data = await state.get_data()
     # Получаем путь к скриншоту из данных состояния
@@ -182,22 +262,38 @@ async def send_screenshot(
     url = data.get('url')
     # Фиксируем время выполнения функции
     finish_time = round((time.time() - start_time), 1)
-    new_message_text = (
-        f'✔ Скриншот сохранен и отправлен в чат:\n'
-        f'🕸 Страница: <b>{title}</b>\n'
-        f'🔗 URL: {url}\n'
-        f'⏱ Время обработки: <b>{finish_time} секунд(ы)</b>\n'
-    )
+    if CHOSEN_LANGUAGE == constants.RU:
+        new_message_text = (
+            f'✔ Скриншот сохранен и отправлен в чат:\n'
+            f'🕸 Страница: <b>{title}</b>\n'
+            f'🔗 URL: {url}\n'
+            f'⏱ Время обработки: <b>{finish_time} секунд(ы)</b>\n'
+        )
+        additional_text = ("Вот “Подробнее”,"
+                           " которая показывает WHOIS сайта")
+        without_whois_message = ("К сожалению, не удалось"
+                                 " получить WHOIS сайта")
+        keyboard = ru_keyboard
+    else:
+        new_message_text = (
+            f'✔ Screenshot saved and sent to the chat:\n'
+            f'🕸 Page: <b>{title}</b>\n'
+            f'🔗 URL: {url}\n'
+            f'⏱ Processing time: <b>{finish_time} seconds(s)</b>\n'
+        )
+        additional_text = ("Here is the 'More',"
+                           " which shows the WHOIS of the site")
+        without_whois_message = ("Unfortunately, it was not possible to"
+                                 " get the WHOIS of the site")
+        keyboard = en_keyboard
     if info:
         logger.info('WHOIS отправлен в чат.')
-        new_message_text += ("Вот “Подробнее”,"
-                             " которая показывает WHOIS сайта")
+        new_message_text += additional_text
         new_reply_markup = more
     else:
         logger.warning('WHOIS не будет отправлен в чат.')
-        new_message_text += ("К сожалению, не удалось"
-                             " получить WHOIS сайта")
-        new_reply_markup = None
+        new_message_text += without_whois_message
+        new_reply_markup = keyboard
         # Завершаем состояние после отправки скриншота
         await state.clear()
     await message.answer_photo(
@@ -226,20 +322,31 @@ async def more_info_callback(
         state: FSMContext
 ):
     """Фунция обработки callback 'Подробнее', при наличии WHOIS"""
+    global CHOSEN_LANGUAGE
     await query.answer()
     # Получаем информацию из состояния или из базы данных
     data = await state.get_data()
     info = data.get('info')
+    if CHOSEN_LANGUAGE == constants.RU:
+        whois_text = f'Информация WHOIS:\n{info}'
+        empty_message = 'К сожалению информацию WHOIS добыть не удалось'
+        keyboard = ru_keyboard
+    else:
+        whois_text = f'WHOIS Information:\n{info}'
+        empty_message = 'Unfortunately, WHOIS information could not be obtained'
+        keyboard = en_keyboard
     if info:
         # Проверка - страховка
         logger.info('Нажата кнопка "Подробнее" к скриншоту.')
         # Отправляем информацию в чат
         await query.message.answer(
-            f'Информация WHOIS:\n{info}'
+            text=whois_text,
+            reply_markup=keyboard
         )
     else:
         await query.message.answer(
-            'К сожалению информацию WHOIS добыть не удалось'
+            text=empty_message,
+            reply_markup=keyboard
         )
     # Сбрасываем состояние машины
     await state.clear()
@@ -251,6 +358,17 @@ async def more_info_callback(
 @user_private_router.message()
 async def stub(message: types.Message):
     """Ответ - заглушка на неизвестные команды."""
+    global CHOSEN_LANGUAGE
+    if CHOSEN_LANGUAGE == constants.RU:
+        unknown_answer = constants.UNKNOWN_ANSWER_RU
+        command_list = constants.COMMAND_LIST_RU
+        non_type_answer = constants.NON_TYPE_ANSWER_RU
+        keyboard = ru_keyboard
+    else:
+        unknown_answer = constants.UNKNOWN_ANSWER_EN
+        command_list = constants.COMMAND_LIST_EN
+        non_type_answer = constants.NON_TYPE_ANSWER_EN
+        keyboard = en_keyboard
     if message.text:
         logger.info(
             f'{message.from_user.username}'
@@ -263,9 +381,10 @@ async def stub(message: types.Message):
             await bye_cmd(message)
         else:
             await message.answer(
-                f'{constants.UNKNOWN_ANSWER}'
+                f'{unknown_answer}'
                 f' <b>{text}</b>\n '
-                f'{constants.COMMAND_LIST}'
+                f'{command_list}',
+                reply_markup=keyboard
             )
             await message.answer_animation(constants.UNKNOWN_STICKER)
     else:
@@ -273,5 +392,5 @@ async def stub(message: types.Message):
             f'{message.from_user.username} - '
             f'отправил не текстовое сообщение.'
         )
-        await message.answer(constants.NON_TYPE_ANSWER)
+        await message.answer(non_type_answer, reply_markup=keyboard)
         await message.answer_animation(constants.NON_TYPE_STICKER)
