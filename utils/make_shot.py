@@ -5,9 +5,14 @@ import asyncio
 from playwright.async_api import async_playwright
 import aiohttp
 import whois
+from PIL import Image  # Модуль для обработки изображений
+from io import BytesIO  # Импортируем BytesIO
 
 from constants.constants import SCREENSHOTS_DIR, VALID_STATUS_CODES
 from utils.loger import logger
+
+# Максимальный размер скриншота для Telegram (в пикселях)
+MAX_SIZE_PICTURE = 4096  # Примерное значение, подставьте реальное
 
 
 async def make_shot(date: str, user_id: int, url: str):
@@ -21,46 +26,45 @@ async def make_shot(date: str, user_id: int, url: str):
             browser = await p.chromium.launch(headless=True)
             page = await browser.new_page()
 
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url) as response:
-                    if response.status in VALID_STATUS_CODES:
-                        await page.goto(url)
-                        title = await page.title() or 'Не удалось получить title'
-                        screenshot = await page.screenshot(full_page=True)
-                    else:
-                        logger.error(
-                            f'Неверный статус код ответа при получении информации по URL {url}: {response.status}')
-                        await browser.close()
-                        return None
+            await page.goto(url)
+            title = await page.title() or 'Не удалось получить title'
 
-            await browser.close()
-
-        # Проверяем, был ли успешно получен скриншот
-        if screenshot:
-            logger.info('Скриншот получен')
-            # Сохраняем скриншот в файл
-            cleaned_url = re.sub(r'[^\w\-_]', '', url)
-            date_formatted = datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f").strftime("%d_%m_%Y")
-            screenshot_filename = f'user_id_{user_id}_url_{cleaned_url}_date_{date_formatted}.png'
-            screenshot_path = os.path.join(SCREENSHOTS_DIR, screenshot_filename)
-            with open(screenshot_path, 'wb') as file:
-                file.write(screenshot)
+            screenshot = await page.screenshot(full_page=True)
+            if screenshot:
+                logger.info('Скриншот получен')
+                # Создаем объект изображения из скриншота
+                image = Image.open(BytesIO(screenshot))
+                # Проверяем размеры изображения
+                width, height = image.size
+                if width > MAX_SIZE_PICTURE or height > MAX_SIZE_PICTURE:
+                    logger.info('Размеры скриншота превышают допустимые. Обрезаем изображение.')
+                    # Обрезаем изображение до максимально допустимых размеров
+                    image = image.resize((min(width, MAX_SIZE_PICTURE), min(height, MAX_SIZE_PICTURE)))
+                # Сохраняем скриншот в файл
+                cleaned_url = re.sub(r'[^\w\-_]', '', url)
+                date_formatted = datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f").strftime("%d_%m_%Y")
+                screenshot_filename = f'user_id_{user_id}_url_{cleaned_url}_date_{date_formatted}.png'
+                screenshot_path = os.path.join(SCREENSHOTS_DIR, screenshot_filename)
+                image.save(screenshot_path)
                 logger.info(f'Скриншот сохранен по пути {screenshot_path}.')
-            try:
-                whois_info = whois.whois(url)
-                if whois_info:
-                    logger.info('WHOIS получен и отправлен в чат.')
-                    return screenshot_path, title, whois_info
-            except Exception as e:
-                logger.error(
-                    f'Функция make_shot не получила WHOIS.'
-                    f'Причина - {e}.'
-                )
-                return screenshot_path, title
-        else:
-            logger.error('Не удалось получить скриншот')
-            return None
-
+                try:
+                    whois_info = whois.whois(url)
+                    if whois_info:
+                        logger.info('WHOIS получен и отправлен в чат.')
+                        await browser.close()
+                        return screenshot_path, title, whois_info
+                except Exception as e:
+                    logger.error(
+                        f'Функция make_shot не получила WHOIS.'
+                        f'Причина - {e}.'
+                    )
+                    await browser.close()
+                    return screenshot_path, title
+            else:
+                logger.error('Не удалось получить скриншот')
+                await browser.close()
+                return None
     except Exception as e:
         logger.error(f'Ошибка при получении скриншота: {e}')
+        await browser.close()
         return None

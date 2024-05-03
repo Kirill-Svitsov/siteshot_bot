@@ -43,7 +43,7 @@ DONE_STICKER = 'CAACAgIAAxkBAAEE6zFmJq9Wtsgvl9E3JhooQgpyXNHA6QACAQADdJypFpeZtNvQ
 # Неожиданный ответ
 EXCEPTION_ANSWER = 'Что-то пошло не так.\nПожалуйста проверьте введенный URL'
 # Ограничение размера скриншота
-MAX_SIZE_PICTURE = 1900
+MAX_SIZE_PICTURE = 4096
 # Директория для сохранения скриншотов
 SCREENSHOTS_DIR = 'screenshots'
 # Директория для сохранения логов
