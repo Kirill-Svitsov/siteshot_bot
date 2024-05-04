@@ -3,7 +3,8 @@
 [![Telegram Badge](https://img.shields.io/badge/-siteshotbot-blue?style=flat&logo=Telegram&logoColor=white)](https://t.me/svitsov_site_shot_bot)
 
 ## Общее описание
-Тестовое задание для компании True Positive Lab
+Бот, который присылает скриншот веб - страницы в ответ на присланную боту ссылку.
+Тестовое задание для компании True Positive Lab.
 
 
 ## Стэк:
@@ -37,7 +38,7 @@ python3 app.py
 docker run --name bot_container --rm -p 8000:8000 -e TOKEN="токен_вашего_бота" svitsov/shot_bot:v1
 ```
 Где: 
-* --name bot_container - имя будующего контейнера
+* --name bot_container - имя будущего контейнера
 * --rm - удаление контейнера после завершения его работы
 * -p 8000:8000 - соединение портов хоста(вашего пк) и контейнера
 * -e TOKEN="токен_вашего_бота"
