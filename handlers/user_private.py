@@ -6,10 +6,11 @@ from aiogram import types, Router, F
 from aiogram.filters import CommandStart, Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import FSInputFile, ReplyKeyboardRemove
+from aiogram.types import FSInputFile
 
 from constants import constants
-from database.orm_query import orm_add_screenshot, orm_add_log
+from database.models import User
+from database.orm_query import orm_add_screenshot
 from filters.chat_types import ChatTypeFilter
 from keyboard.inline import git, more
 from keyboard.reply import ru_keyboard, en_keyboard, choose_language, lng
@@ -18,8 +19,6 @@ from utils.loger import logger
 from utils.make_shot import make_shot
 from utils.ensure_user_exists import ensure_user_exists
 from utils.logs_script import logs_script
-
-from database.models import User
 
 user_private_router = Router()
 # Устанавливаем фильтрацию на роутер для хэндлеров приватных чатов
@@ -34,6 +33,7 @@ class LanguageState(StatesGroup):
 
 @user_private_router.message(CommandStart())
 async def command_start(message: types.Message, session: AsyncSession) -> None:
+    """Хэндлер обработки команды start."""
     await message.answer(
         f'<b>{message.from_user.first_name}</b> '
         f'{constants.START_ANSWER}',
@@ -44,6 +44,7 @@ async def command_start(message: types.Message, session: AsyncSession) -> None:
     log = f'{message.from_user.username} начал работу с ботом.'
     logger.info(log)
     log = f'INFO ({str(datetime.now())}): ' + log
+    # Здесь и далее - вызов функции добавления логов в БД
     await logs_script(session, user.id, log)
 
 
@@ -51,8 +52,12 @@ async def command_start(message: types.Message, session: AsyncSession) -> None:
     (F.text.lower() == 'chose language') | (F.text.lower() == 'выбрать язык')
 )
 @user_private_router.message(Command('choose_language'))
-async def choose_language_cmd(message: types.Message, state: FSMContext, session: AsyncSession):
-    """Хэндлер на обработку /hello и сообщения 'привет'"""
+async def choose_language_cmd(
+        message: types.Message,
+        state: FSMContext,
+        session: AsyncSession
+):
+    """Хэндлер на обработку /choose_language."""
     # Проверка или добавление пользователя в БД, при выполнении команды
     await ensure_user_exists(session, message)
     await state.set_state(LanguageState.language)
@@ -61,7 +66,12 @@ async def choose_language_cmd(message: types.Message, state: FSMContext, session
 
 
 @user_private_router.message(LanguageState.language)
-async def set_language(message: types.Message, state: FSMContext, session: AsyncSession) -> None:
+async def set_language(
+        message: types.Message,
+        state: FSMContext,
+        session: AsyncSession
+):
+    """Хэндлер на установку языка для текущего пользователя."""
     global CHOSEN_LANGUAGE
     await state.update_data(language=message.text)
     language = message.text.lower()
@@ -101,7 +111,9 @@ async def set_language(message: types.Message, state: FSMContext, session: Async
         await logs_script(session, user.id, log)
 
 
-@user_private_router.message((F.text.lower() == 'привет') | (F.text.lower() == 'hello'))
+@user_private_router.message(
+    (F.text.lower() == 'привет') | (F.text.lower() == 'hello')
+)
 @user_private_router.message(Command('hello'))
 async def hello_cmd(message: types.Message, session: AsyncSession):
     global CHOSEN_LANGUAGE
@@ -121,7 +133,9 @@ async def hello_cmd(message: types.Message, session: AsyncSession):
     await logs_script(session, user.id, log)
 
 
-@user_private_router.message((F.text.lower() == 'пока') | (F.text.lower() == 'bye'))
+@user_private_router.message(
+    (F.text.lower() == 'пока') | (F.text.lower() == 'bye')
+)
 @user_private_router.message(Command('bye'))
 async def bye_cmd(message: types.Message, session: AsyncSession):
     """Хэндлер на обработку /bye и сообщения 'пока'"""
@@ -145,11 +159,14 @@ async def bye_cmd(message: types.Message, session: AsyncSession):
     await logs_script(session, user.id, log)
 
 
-@user_private_router.message((F.text.lower() == 'помощь') | (F.text.lower() == 'help'))
+@user_private_router.message(
+    (F.text.lower() == 'помощь') | (F.text.lower() == 'help')
+)
 @user_private_router.message(Command('help'))
 async def help_cmd(message: types.Message, session: AsyncSession):
     """Хэндлер на обработку /help и сообщения 'помощь'"""
-    # Проверка или добавление пользователя в БД, при выполнении команды
+    # Проверка или добавление пользователя в БД,
+    # при выполнении команды
     user = await ensure_user_exists(session, message)
     global CHOSEN_LANGUAGE
     if CHOSEN_LANGUAGE == constants.RU:
@@ -182,29 +199,41 @@ class MakeShot(StatesGroup):
     (F.text.lower() == 'сделать скриншот') | (F.text.lower() == 'make screen')
 )
 @user_private_router.message(Command('make_shot'))
-async def shot_cmd(message: types.Message, state: FSMContext, session: AsyncSession):
+async def shot_cmd(
+        message: types.Message,
+        state: FSMContext,
+        session: AsyncSession
+):
     """Хэндлер для запуска команды make_shot"""
-    # Создаем юзера, если его нет и получаем обратно, или просто получаем юзера
+    # Создаем юзера, если его нет и получаем обратно,
+    # или просто получаем юзера
     user = await ensure_user_exists(session, message)
     global CHOSEN_LANGUAGE
     if CHOSEN_LANGUAGE == constants.RU:
         await message.answer(
-            f'<b>{message.from_user.first_name}</b> ' + constants.URL_ANSWER_RU,
+            f'<b>{message.from_user.first_name}</b> '
+            + constants.URL_ANSWER_RU,
         )
     else:
         await message.answer(
-            f'<b>{message.from_user.first_name}</b> ' + constants.URL_ANSWER_EN,
+            f'<b>{message.from_user.first_name}</b> '
+            + constants.URL_ANSWER_EN,
         )
     await state.set_state(MakeShot.user_id)
     await state.update_data(user_id=user.id)
-    log = f'{message.from_user.username} - - использовал команду сделать скриншот.'
+    log = (f'{message.from_user.username} - '
+           f'использовал команду сделать скриншот.')
     logger.info(log)
     log = f'INFO ({str(datetime.now())}): ' + log
     await logs_script(session, user.id, log)
 
 
 @user_private_router.message(MakeShot.user_id, F.text)
-async def process_cmd(message: types.Message, state: FSMContext, session: AsyncSession):
+async def process_cmd(
+        message: types.Message,
+        state: FSMContext,
+        session: AsyncSession
+):
     """Хэндлер получения скриншота"""
     global CHOSEN_LANGUAGE
     user = await ensure_user_exists(session, message)
@@ -215,8 +244,6 @@ async def process_cmd(message: types.Message, state: FSMContext, session: AsyncS
     start_time = time.time()
     # Создаем маску на проверку URL
     url_pattern = re.compile(r'^https?://(?:[\w-]+\.?)+[\w]+(?:/\S*)?')
-    # По хорошему нужно добавить обработку, когда URL высылают без протокола
-    # то - есть www.vk.ru - условно
     if CHOSEN_LANGUAGE == constants.RU:
         wrong_url_answer_answer = constants.WRONG_URL_RU
         process_message = constants.PROCESS_MESSAGE_RU
@@ -405,7 +432,8 @@ async def more_info_callback(
         state: FSMContext,
         session: AsyncSession
 ):
-    """Фунция обработки callback 'Подробнее', при наличии WHOIS"""
+    """Фунция обработки callback 'Подробнее',
+    при наличии WHOIS"""
     global CHOSEN_LANGUAGE
     await query.answer()
     # Получаем информацию из состояния или из базы данных
@@ -413,11 +441,14 @@ async def more_info_callback(
     info = data.get('info')
     if CHOSEN_LANGUAGE == constants.RU:
         whois_text = f'Информация WHOIS:\n{info}'
-        empty_message = 'К сожалению информацию WHOIS добыть не удалось'
+        empty_message = ('К сожалению информацию '
+                         'WHOIS добыть не удалось')
         keyboard = ru_keyboard
     else:
         whois_text = f'WHOIS Information:\n{info}'
-        empty_message = 'Unfortunately, WHOIS information could not be obtained'
+        empty_message = ('Unfortunately, '
+                         'WHOIS information '
+                         'could not be obtained')
         keyboard = en_keyboard
     if info:
         # Проверка - страховка
@@ -440,9 +471,13 @@ async def more_info_callback(
 
 
 @user_private_router.message()
-async def stub(message: types.Message, session: AsyncSession):
+async def stub(
+        message: types.Message,
+        session: AsyncSession
+):
     """Ответ - заглушка на неизвестные команды."""
-    # Проверка или добавление пользователя в БД, при выполнении команды
+    # Проверка или добавление пользователя в БД,
+    # при выполнении команды
     user = await ensure_user_exists(session, message)
     global CHOSEN_LANGUAGE
     if CHOSEN_LANGUAGE == constants.RU:
@@ -473,7 +508,9 @@ async def stub(message: types.Message, session: AsyncSession):
                 f'{command_list}',
                 reply_markup=keyboard
             )
-            await message.answer_animation(constants.UNKNOWN_STICKER)
+            await message.answer_animation(
+                constants.UNKNOWN_STICKER
+            )
     else:
         log = (f'{message.from_user.username} - '
                f'отправил не текстовое сообщение.')

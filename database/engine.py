@@ -1,15 +1,30 @@
-import os
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine
+)
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from database.models import Base
 
-from .models import Base
+# DB_POSTGRES = os.getenv('DB_URL')
+DB_POSTGRES = None
 
-DB_LITE = os.getenv('DB_LITE')
+if DB_POSTGRES:
+    # Если в env указан postgress а формате:
+    # postgresql+asyncpg://login:password@localhost:5432/db_name
+    engine = create_async_engine(DB_POSTGRES, echo=True)
+else:
+    # Иначе работает с SQLite
+    engine = create_async_engine(
+        'sqlite+aiosqlite:///my_base.db',
+        echo=True
+    )
 
-if DB_LITE:
-    engine = create_async_engine(DB_LITE, echo=True)
-
-session_maker = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+session_maker = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False
+)
 
 
 async def create_db():

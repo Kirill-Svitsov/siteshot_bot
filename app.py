@@ -7,8 +7,6 @@ from aiogram.enums import ParseMode
 from aiogram.types import BotCommandScopeAllPrivateChats
 from dotenv import load_dotenv, find_dotenv
 
-load_dotenv(find_dotenv())
-
 from common.bot_cmnds_list import private
 from constants import constants
 from handlers.user_private import user_private_router
@@ -16,6 +14,8 @@ from handlers.user_group import user_group_router
 from middlewares.db import DataBaseSession
 from database.engine import create_db, drop_db, session_maker
 from utils.loger import logger
+
+load_dotenv(find_dotenv())
 
 bot = Bot(
     token=os.getenv('TOKEN'),

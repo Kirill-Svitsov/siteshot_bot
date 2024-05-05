@@ -9,7 +9,6 @@ import whois
 
 from constants.constants import (
     SCREENSHOTS_DIR,
-    VALID_STATUS_CODES,
     MAX_SIZE_PICTURE
 )
 from utils.loger import logger
