@@ -2,7 +2,7 @@ import os
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from .models import Base, User, Screenshot, UserLog
+from .models import Base
 
 DB_LITE = os.getenv('DB_LITE')
 

@@ -19,6 +19,7 @@ async def orm_add_user(session: AsyncSession, data: dict):
             last_name=data['last_name'] or None,
             username=data['username']
         )
+        print(f'user_obj = {obj}')
         session.add(obj)
         await session.commit()
     else:
@@ -28,10 +29,10 @@ async def orm_add_user(session: AsyncSession, data: dict):
 async def orm_add_screenshot(session: AsyncSession, data: dict):
     """Функция добавления скриншота в БД"""
     obj = Screenshot(
-        user_id=data['user_id'],
+        user_id=int(data['user_id']),
         url=data['screenshot_path']
     )
-    print(f'data["user_id"] = {data['user_id']}, тип {type(data['user_id'])}\n'
-          f'data["screenshot_path"] = {data['screenshot_path']}, тип {type(data['screenshot_path'])} ')
+    print(f'obj = {obj}')
     session.add(obj)
+    print(f'Session before commit = {session}')
     await session.commit()

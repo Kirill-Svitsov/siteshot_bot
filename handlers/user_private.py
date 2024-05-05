@@ -153,7 +153,6 @@ async def help_cmd(message: types.Message, session: AsyncSession):
 # Код для состояний машины FSM для скриншота
 class MakeShot(StatesGroup):
     user_id = State()
-    process = State()
     screenshot_path = State()
     info = State()
 
@@ -167,7 +166,7 @@ async def shot_cmd(message: types.Message, state: FSMContext, session: AsyncSess
     """Хэндлер для запуска команды make_shot"""
     # Создаем юзера, если его нет и получаем обратно, или просто получаем юзера
     user = await ensure_user_exists(session, message)
-    # Получаем из объекта User его Telegram id.
+    # Получаем из объекта User его id.
     user_id = user.id
     global CHOSEN_LANGUAGE
     if CHOSEN_LANGUAGE == constants.RU:
@@ -185,11 +184,11 @@ async def shot_cmd(message: types.Message, state: FSMContext, session: AsyncSess
 
 
 @user_private_router.message(MakeShot.user_id, F.text)
-async def process_cmd(message: types.Message, state: FSMContext):
+async def process_cmd(message: types.Message, state: FSMContext, session: AsyncSession):
     """Хэндлер получения скриншота"""
     global CHOSEN_LANGUAGE
     date = str(datetime.now())
-    user_id = int(message.from_user.id)
+    telegram_user_id = int(message.from_user.id)
     url = message.text
     # Создаем стартовую метку времени
     start_time = time.time()
@@ -224,8 +223,7 @@ async def process_cmd(message: types.Message, state: FSMContext):
     process_sticker = await message.answer_animation(
         constants.PROCESS_STICKER
     )
-    await state.set_state(MakeShot.process)
-    result = await make_shot(date, user_id, url)
+    result = await make_shot(date, telegram_user_id, url)
     if result:
         logger.info('Скриншот получен. Функция продолжает работу.')
         if len(result) == 3:
@@ -238,7 +236,7 @@ async def process_cmd(message: types.Message, state: FSMContext):
             await send_screenshot(
                 message, state, start_time,
                 title, process_message,
-                process_sticker, info
+                process_sticker, session, info
             )
         elif len(result) == 2:
             logger.info('Функция вернула скриншот, без WHOIS.')
@@ -248,7 +246,7 @@ async def process_cmd(message: types.Message, state: FSMContext):
             await send_screenshot(
                 message, state, start_time,
                 title, process_message,
-                process_sticker
+                process_sticker, session
             )
     else:
         logger.error(
@@ -329,7 +327,6 @@ async def send_screenshot(
         except Exception as e:
             logger.error(f'Скриншот не добавлен в БД. '
                          f'Причина: {e}.')
-            print(f'data={data}')
         # Завершаем состояние после отправки скриншота
         await state.clear()
     await message.answer_photo(
