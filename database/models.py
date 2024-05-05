@@ -30,3 +30,14 @@ class Screenshot(Base):
 
     def __repr__(self):
         return f"<Screenshot(id={self.id}, user_id={self.user_id}, url='{self.url}')>"
+
+
+class UserLog(Base):
+    __tablename__ = 'user_logs'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)  # Сообщение лога
+
+    def __repr__(self):
+        return f"<UserLog(id={self.id}, user_id={self.user_id})>"

@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models import User, Screenshot
+from database.models import User, Screenshot, UserLog
 from utils.loger import logger
 
 
@@ -31,6 +31,18 @@ async def orm_add_screenshot(session: AsyncSession, data: dict):
     obj = Screenshot(
         user_id=int(data['user_id']),
         url=data['screenshot_path']
+    )
+    print(f'obj = {obj}')
+    session.add(obj)
+    print(f'Session before commit = {session}')
+    await session.commit()
+
+
+async def orm_add_log(session: AsyncSession, user_id: int, log: str):
+    """Функция добавления скриншота в БД"""
+    obj = UserLog(
+        user_id=user_id,
+        message=log
     )
     print(f'obj = {obj}')
     session.add(obj)

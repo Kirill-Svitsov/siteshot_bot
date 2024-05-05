@@ -9,7 +9,7 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import FSInputFile, ReplyKeyboardRemove
 
 from constants import constants
-from database.orm_query import orm_add_screenshot
+from database.orm_query import orm_add_screenshot, orm_add_log
 from filters.chat_types import ChatTypeFilter
 from keyboard.inline import git, more
 from keyboard.reply import ru_keyboard, en_keyboard, choose_language, lng
@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from utils.loger import logger
 from utils.make_shot import make_shot
 from utils.ensure_user_exists import ensure_user_exists
+from utils.logs_script import logs_script
 
 from database.models import User
 
@@ -39,8 +40,11 @@ async def command_start(message: types.Message, session: AsyncSession) -> None:
         reply_markup=lng
     )
     # Проверка или добавление пользователя в БД, при выполнении команды
-    await ensure_user_exists(session, message)
-    logger.info(f'{message.from_user.first_name} начал работу с ботом.')
+    user = await ensure_user_exists(session, message)
+    log = f'{message.from_user.username} начал работу с ботом.'
+    logger.info(log)
+    log = f'INFO ({str(datetime.now())}): ' + log
+    await logs_script(session, user.id, log)
 
 
 @user_private_router.message(
@@ -57,25 +61,32 @@ async def choose_language_cmd(message: types.Message, state: FSMContext, session
 
 
 @user_private_router.message(LanguageState.language)
-async def set_language(message: types.Message, state: FSMContext) -> None:
+async def set_language(message: types.Message, state: FSMContext, session: AsyncSession) -> None:
     global CHOSEN_LANGUAGE
     await state.update_data(language=message.text)
     language = message.text.lower()
     CHOSEN_LANGUAGE = language
+    user = await ensure_user_exists(session, message)
     if language == 'русский':
         await state.update_data(language=message.text)
         await message.answer(
             'Отлично! Продолжим на русском языке.',
             reply_markup=ru_keyboard
         )
-        logger.info(f'{message.from_user.first_name} выбрал русский язык.')
+        log = f'{message.from_user.username} выбрал русский язык.'
+        logger.info(log)
+        log = f'INFO ({str(datetime.now())}): ' + log
+        await logs_script(session, user.id, log)
         await state.clear()
     elif language == 'english':
         await message.answer(
             'Great! Lets continue in English.',
             reply_markup=en_keyboard
         )
-        logger.info(f'{message.from_user.first_name} выбрал английский язык.')
+        log = f'{message.from_user.username} выбрал английский язык.'
+        logger.info(log)
+        log = f'INFO ({str(datetime.now())}): ' + log
+        await logs_script(session, user.id, log)
         await state.update_data(language=message.text)
         await state.clear()
     else:
@@ -84,7 +95,10 @@ async def set_language(message: types.Message, state: FSMContext) -> None:
             'Пожалуйста выберите язык снова:',
             reply_markup=choose_language
         )
-        logger.warning(f'{message.from_user.first_name} ошибся при выборе языка.')
+        log = f'{message.from_user.username} ошибся при выборе языка.'
+        logger.warning(log)
+        log = f'WARNING ({str(datetime.now())}): ' + log
+        await logs_script(session, user.id, log)
 
 
 @user_private_router.message((F.text.lower() == 'привет') | (F.text.lower() == 'hello'))
@@ -93,7 +107,7 @@ async def hello_cmd(message: types.Message, session: AsyncSession):
     global CHOSEN_LANGUAGE
     """Хэндлер на обработку /hello и сообщения 'привет'"""
     # Проверка или добавление пользователя в БД, при выполнении команды
-    await ensure_user_exists(session, message)
+    user = await ensure_user_exists(session, message)
     if CHOSEN_LANGUAGE == constants.RU:
         await message.reply(f'<b>{message.from_user.first_name}</b> '
                             f'{constants.GREETING_ANSWER_RU}')
@@ -101,8 +115,10 @@ async def hello_cmd(message: types.Message, session: AsyncSession):
         await message.reply(f'<b>{message.from_user.first_name}</b> '
                             f'{constants.GREETING_ANSWER_EN}')
     await message.answer_animation(constants.HASBIK_HELLO)
-    logger.info(f'{message.from_user.username} - '
-                f'использовал команду hello.')
+    log = f'{message.from_user.username} - использовал команду hello.'
+    logger.info(log)
+    log = f'INFO ({str(datetime.now())}): ' + log
+    await logs_script(session, user.id, log)
 
 
 @user_private_router.message((F.text.lower() == 'пока') | (F.text.lower() == 'bye'))
@@ -110,7 +126,7 @@ async def hello_cmd(message: types.Message, session: AsyncSession):
 async def bye_cmd(message: types.Message, session: AsyncSession):
     """Хэндлер на обработку /bye и сообщения 'пока'"""
     # Проверка или добавление пользователя в БД, при выполнении команды
-    await ensure_user_exists(session, message)
+    user = await ensure_user_exists(session, message)
     global CHOSEN_LANGUAGE
     if CHOSEN_LANGUAGE == constants.RU:
         await message.reply(
@@ -123,8 +139,10 @@ async def bye_cmd(message: types.Message, session: AsyncSession):
             f'<b>{message.from_user.first_name}</b>!'
         )
     await message.answer_animation(constants.BYE_STICKER)
-    logger.info(f'{message.from_user.username} - '
-                f'использовал команду bye.')
+    log = f'{message.from_user.username} - использовал команду bye.'
+    logger.info(log)
+    log = f'INFO ({str(datetime.now())}): ' + log
+    await logs_script(session, user.id, log)
 
 
 @user_private_router.message((F.text.lower() == 'помощь') | (F.text.lower() == 'help'))
@@ -132,7 +150,7 @@ async def bye_cmd(message: types.Message, session: AsyncSession):
 async def help_cmd(message: types.Message, session: AsyncSession):
     """Хэндлер на обработку /help и сообщения 'помощь'"""
     # Проверка или добавление пользователя в БД, при выполнении команды
-    await ensure_user_exists(session, message)
+    user = await ensure_user_exists(session, message)
     global CHOSEN_LANGUAGE
     if CHOSEN_LANGUAGE == constants.RU:
         await message.answer(
@@ -146,8 +164,10 @@ async def help_cmd(message: types.Message, session: AsyncSession):
             f'{constants.COMMAND_LIST_EN}',
             reply_markup=git
         )
-    logger.info(f'{message.from_user.username} -'
-                f' использовал команду help.')
+    log = f'{message.from_user.username} - использовал команду help.'
+    logger.info(log)
+    log = f'INFO ({str(datetime.now())}): ' + log
+    await logs_script(session, user.id, log)
 
 
 # Код для состояний машины FSM для скриншота
@@ -166,8 +186,6 @@ async def shot_cmd(message: types.Message, state: FSMContext, session: AsyncSess
     """Хэндлер для запуска команды make_shot"""
     # Создаем юзера, если его нет и получаем обратно, или просто получаем юзера
     user = await ensure_user_exists(session, message)
-    # Получаем из объекта User его id.
-    user_id = user.id
     global CHOSEN_LANGUAGE
     if CHOSEN_LANGUAGE == constants.RU:
         await message.answer(
@@ -178,15 +196,18 @@ async def shot_cmd(message: types.Message, state: FSMContext, session: AsyncSess
             f'<b>{message.from_user.first_name}</b> ' + constants.URL_ANSWER_EN,
         )
     await state.set_state(MakeShot.user_id)
-    await state.update_data(user_id=user_id)
-    logger.info(f'{message.from_user.username}'
-                f'  - использовал команду сделать скриншот.')
+    await state.update_data(user_id=user.id)
+    log = f'{message.from_user.username} - - использовал команду сделать скриншот.'
+    logger.info(log)
+    log = f'INFO ({str(datetime.now())}): ' + log
+    await logs_script(session, user.id, log)
 
 
 @user_private_router.message(MakeShot.user_id, F.text)
 async def process_cmd(message: types.Message, state: FSMContext, session: AsyncSession):
     """Хэндлер получения скриншота"""
     global CHOSEN_LANGUAGE
+    user = await ensure_user_exists(session, message)
     date = str(datetime.now())
     telegram_user_id = int(message.from_user.id)
     url = message.text
@@ -209,17 +230,21 @@ async def process_cmd(message: types.Message, state: FSMContext, session: AsyncS
             text=wrong_url_answer_answer,
             reply_markup=keyboard
         )
-        logger.error(
-            f'{message.from_user.username}'
-            f' - использовал неккоретный URL: {message.text}',
-        )
+        log = (f'{message.from_user.username} - использовал '
+               f'некорретный URL: {message.text}')
+        logger.error(log)
+        log = f'ERROR ({str(datetime.now())}): ' + log
+        await logs_script(session, user.id, log)
         return
     process_message = await message.answer(
         text=process_message,
         reply_markup=keyboard
     )
-    logger.info(f'Запущен процесс получения скриншота'
-                f'по URL = {url}')
+    log = (f'Запущен процесс получения скриншота'
+           f'по URL = {url}')
+    logger.info(log)
+    log = f'INFO ({str(datetime.now())}): ' + log
+    await logs_script(session, user.id, log)
     process_sticker = await message.answer_animation(
         constants.PROCESS_STICKER
     )
@@ -227,31 +252,37 @@ async def process_cmd(message: types.Message, state: FSMContext, session: AsyncS
     if result:
         logger.info('Скриншот получен. Функция продолжает работу.')
         if len(result) == 3:
-            logger.info('Функция вернула все аргуенты,'
-                        ' в том числе и WHOIS.')
+            log = 'Функция вернула все аргуенты, в том числе и WHOIS.'
+            logger.info(log)
+            log = f'INFO ({str(datetime.now())}): ' + log
+            await logs_script(session, user.id, log)
             screenshot_path, title, info = result
             await state.update_data(screenshot_path=screenshot_path)
             await state.update_data(info=info)
             await state.set_state(MakeShot.screenshot_path)
             await send_screenshot(
-                message, state, start_time,
+                user, message, state, start_time,
                 title, process_message,
                 process_sticker, session, info
             )
         elif len(result) == 2:
-            logger.info('Функция вернула скриншот, без WHOIS.')
+            log = 'Функция вернула скриншот, без WHOIS.'
+            logger.info(log)
+            log = f'INFO ({str(datetime.now())}): ' + log
+            await logs_script(session, user.id, log)
             screenshot_path, title = result
             await state.update_data(screenshot_path=screenshot_path)
             await state.set_state(MakeShot.screenshot_path)
             await send_screenshot(
-                message, state, start_time,
+                user, message, state, start_time,
                 title, process_message,
                 process_sticker, session
             )
     else:
-        logger.error(
-            'Функция make_shot не получила доступ к сайту.'
-        )
+        log = 'Функция make_shot не получила доступ к сайту.'
+        logger.error(log)
+        log = f'ERROR ({str(datetime.now())}): ' + log
+        await logs_script(session, user.id, log)
         await state.clear()
         logger.info('Состояние FSM машины сброшено.')
         await process_message.delete()
@@ -261,6 +292,7 @@ async def process_cmd(message: types.Message, state: FSMContext, session: AsyncS
 
 @user_private_router.message(MakeShot.screenshot_path)
 async def send_screenshot(
+        user: User,
         message: types.Message,
         state: FSMContext,
         start_time: float,
@@ -305,28 +337,43 @@ async def send_screenshot(
                                  " get the WHOIS of the site")
         keyboard = en_keyboard
     if info:
-        logger.info('WHOIS отправлен в чат.')
+        log = 'WHOIS отправлен в чат.'
+        logger.info(log)
+        log = f'INFO ({str(datetime.now())}): ' + log
+        await logs_script(session, user.id, log)
         new_message_text += additional_text
         new_reply_markup = more
         # Добавляем скриншот в БД.
         try:
             await orm_add_screenshot(session, data)
-            logger.info('Скриншот добавлен в БД.')
+            log = 'Скриншот добавлен в БД.'
+            logger.info(log)
+            log = f'INFO ({str(datetime.now())}): ' + log
+            await logs_script(session, user.id, log)
         except Exception as e:
-            logger.error(f'Скриншот не добавлен в БД. '
-                         f'Причина: {e}.')
-            print(f'data={data}')
+            log = f'Скриншот добавлен в БД. Причина: {e}.'
+            logger.error(log)
+            log = f'ERROR ({str(datetime.now())}): ' + log
+            await logs_script(session, user.id, log)
     else:
-        logger.warning('WHOIS не будет отправлен в чат.')
+        log = 'WHOIS не будет отправлен в чат.'
+        logger.warning(log)
+        log = f'WARNING ({str(datetime.now())}): ' + log
+        await logs_script(session, user.id, log)
         new_message_text += without_whois_message
         new_reply_markup = keyboard
         # Добавляем скриншот в БД перед сбросом состояния.
         try:
             await orm_add_screenshot(session, data)
-            logger.info('Скриншот добавлен в БД.')
+            log = 'Скриншот добавлен в БД.'
+            logger.info(log)
+            log = f'WARNING ({str(datetime.now())}): ' + log
+            await logs_script(session, user.id, log)
         except Exception as e:
-            logger.error(f'Скриншот не добавлен в БД. '
-                         f'Причина: {e}.')
+            log = f'Скриншот не добавлен в БД. Причина: {e}.'
+            logger.error(log)
+            log = f'ERROR ({str(datetime.now())}): ' + log
+            await logs_script(session, user.id, log)
         # Завершаем состояние после отправки скриншота
         await state.clear()
     await message.answer_photo(
@@ -335,7 +382,10 @@ async def send_screenshot(
         ), caption=new_message_text,
         reply_markup=new_reply_markup
     )
-    logger.info('Скриншот отправлен в чат.')
+    log = 'Скриншот отправлен в чат.'
+    logger.info(log)
+    log = f'INFO ({str(datetime.now())}): ' + log
+    await logs_script(session, user.id, log)
     # Это скорее костыль, но изменить сообщение не удалось
     # Поэтому удаляю
     await process_message.delete()
@@ -393,7 +443,7 @@ async def more_info_callback(
 async def stub(message: types.Message, session: AsyncSession):
     """Ответ - заглушка на неизвестные команды."""
     # Проверка или добавление пользователя в БД, при выполнении команды
-    await ensure_user_exists(session, message)
+    user = await ensure_user_exists(session, message)
     global CHOSEN_LANGUAGE
     if CHOSEN_LANGUAGE == constants.RU:
         unknown_answer = constants.UNKNOWN_ANSWER_RU
@@ -406,10 +456,11 @@ async def stub(message: types.Message, session: AsyncSession):
         non_type_answer = constants.NON_TYPE_ANSWER_EN
         keyboard = en_keyboard
     if message.text:
-        logger.info(
-            f'{message.from_user.username}'
-            f' - ввел несуществующую команду.'
-        )
+        log = (f'{message.from_user.username} - '
+               f'ввел несуществующую команду.')
+        logger.info(log)
+        log = f'INFO ({str(datetime.now())}): ' + log
+        await logs_script(session, user.id, log)
         text = message.text
         if text.lower() in constants.GREETINGS_WORDS:
             await hello_cmd(message)
@@ -424,9 +475,10 @@ async def stub(message: types.Message, session: AsyncSession):
             )
             await message.answer_animation(constants.UNKNOWN_STICKER)
     else:
-        logger.warning(
-            f'{message.from_user.username} - '
-            f'отправил не текстовое сообщение.'
-        )
+        log = (f'{message.from_user.username} - '
+               f'отправил не текстовое сообщение.')
+        logger.warning(log)
+        log = f'WARNING ({str(datetime.now())}): ' + log
+        await logs_script(session, user.id, log)
         await message.answer(non_type_answer, reply_markup=keyboard)
         await message.answer_animation(constants.NON_TYPE_STICKER)
