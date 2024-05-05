@@ -30,8 +30,6 @@ RUN apt-get update && apt-get install -y \
     libcairo2 \
     libasound2 \
  && rm -rf /var/lib/apt/lists/*
-# RUN apt-get update && apt-get install -y chromium-driver && \
-#     rm -rf /var/lib/apt/lists/*
 
 # Устанавливаем рабочую директорию и копируем файлы проекта
 WORKDIR /siteshot_bot
