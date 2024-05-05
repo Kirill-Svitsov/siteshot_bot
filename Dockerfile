@@ -36,6 +36,5 @@ RUN apt-get update && apt-get install -y \
 # Устанавливаем рабочую директорию и копируем файлы проекта
 WORKDIR /siteshot_bot
 COPY . .
-# docker run --name bot_container --rm -p 8000:8000 -e TOKEN="7165020364:AAE1ARJ5jkM7dueCVKvq9RqkN6BA6vArTmI" siteshot_bot:v2
 # Запускаем приложение
 CMD ["python", "app.py"]
