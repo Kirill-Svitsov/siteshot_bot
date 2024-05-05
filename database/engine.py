@@ -1,3 +1,5 @@
+import os
+
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -6,6 +8,8 @@ from sqlalchemy.ext.asyncio import (
 
 from database.models import Base
 
+DATABASE_FILE = os.path.join('data', 'my_base.db')
+DATABASE_URL = f'sqlite+aiosqlite:///{DATABASE_FILE}'
 # DB_POSTGRES = os.getenv('DB_URL')
 DB_POSTGRES = None
 
@@ -16,7 +20,7 @@ if DB_POSTGRES:
 else:
     # Иначе работает с SQLite
     engine = create_async_engine(
-        'sqlite+aiosqlite:///my_base.db',
+        DATABASE_URL,
         echo=True
     )
 

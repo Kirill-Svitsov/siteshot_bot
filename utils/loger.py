@@ -17,7 +17,7 @@ stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(logging.Formatter(FORMAT))
 stream_handler.setLevel(logging.INFO)
 # Формируем файловый логгер
-file_handler = RotatingFileHandler('logs/logs.log', encoding='utf-8')
+file_handler = RotatingFileHandler('data/logs/logs.log', encoding='utf-8')
 file_handler.setFormatter(logging.Formatter(FORMAT))
 file_handler.setLevel(logging.INFO)
 logger.addHandler(file_handler)

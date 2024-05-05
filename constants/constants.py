@@ -67,9 +67,9 @@ EXCEPTION_ANSWER = 'Что-то пошло не так.\nПожалуйста п
 # Ограничение размера скриншота
 MAX_SIZE_PICTURE = 4096
 # Директория для сохранения скриншотов
-SCREENSHOTS_DIR = 'screenshots'
+SCREENSHOTS_DIR = 'data/screenshots'
 # Директория для сохранения логов
-LOGS_DIR = 'logs'
+LOGS_DIR = 'data/logs'
 # Валидные ответы response.status_code
 VALID_STATUS_CODES = [200, 201, 202, 203, 204, 205, 206, 300, 301, 302, 303, 304, 305, 306, 307, 308]
 # Headers для request get запроса

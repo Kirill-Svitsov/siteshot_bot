@@ -76,5 +76,4 @@ async def make_shot(date: str, user_id: int, url: str):
                 return
     except Exception as e:
         logger.error(f'Ошибка при получении скриншота: {e}')
-        await browser.close()
         return
